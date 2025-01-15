@@ -39,10 +39,13 @@ class ProtectedState(reflex_local_auth.LocalAuthState):
 
 class UserDashboardState(ProtectedState):
     game_statistics: GameStatistics = GameStatistics()
+    ranked_users: list[User] = []
+    ranking_position: int = -1
 
     def on_load(self):
         super().on_load()
         self.game_statistics = self._load_game_statistics()
+        self.ranking_position = self._get_ranking_position()
 
     def do_logout(self):
         self.game_statistics = GameStatistics()
@@ -82,23 +85,25 @@ class UserDashboardState(ProtectedState):
     def _get_ranked_users(self) -> Sequence[User]:
         with get_session() as session:
             stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
-            ranked_users = session.scalars(stmt).all()
+            return session.scalars(stmt).all()
 
-        return ranked_users
+    @rx.event
+    def update_ranked_users(self) -> None:
+        self.ranked_users = self._get_ranked_users()  # type: ignore
 
     @rx.var(cache=True)
-    def ranked_users(self) -> Sequence[tuple[int, str, str]]:
+    def leaderboard_entries(self) -> Sequence[tuple[int, str, str]]:
         return [
             (i + 1, user.username, f"{user.mu:.2f} / {user.sigma:.2f}")
-            for i, user in enumerate(self._get_ranked_users())
+            for i, user in enumerate(self.ranked_users)
         ]
 
-    @rx.var(cache=True)
-    def ranking_position(self) -> int:
+    def _get_ranking_position(self) -> int:
         if not self.is_authenticated:
             return -1
 
-        for i, user in enumerate(self._get_ranked_users()):
+        self.update_ranked_users()
+        for i, user in enumerate(self.ranked_users):
             if user.user_id == self.authenticated_user.user_id:
                 return i + 1
         return -1

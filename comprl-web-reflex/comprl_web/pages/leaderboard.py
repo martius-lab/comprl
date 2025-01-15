@@ -12,11 +12,12 @@ from .. import reflex_local_auth
 def leaderboard() -> rx.Component:
     return standard_layout(
         rx.data_table(
-            data=UserDashboardState.ranked_users,
+            data=UserDashboardState.leaderboard_entries,
             columns=["Ranking", "Username", "µ / Σ"],
             search=True,
             sort=False,
             pagination=True,
+            on_mount=UserDashboardState.update_ranked_users,
         ),
         heading="Leaderboard",
     )

@@ -1,0 +1,81 @@
+bootstrap: docker
+from: ubuntu:24.04
+
+%arguments
+    COMPRL_GIT_BRANCH=main
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+
+    echo "deb http://archive.ubuntu.com/ubuntu noble universe" >> /etc/apt/sources.list
+    apt-get update
+
+    apt-get install -y python3-dev python3-pip python3-full swig git
+
+    git clone https://github.com/martius-lab/teamproject-competition-server \
+        --depth 1 -b "{{ COMPRL_GIT_BRANCH }}" /comprl
+
+    python3 -m venv /venv
+    . /venv/bin/activate
+
+    pip install /comprl/comprl
+    pip install -r /comprl/comprl-hockey-game/requirements.txt
+
+
+    # cleanup
+    apt-get clean
+    pip cache purge
+
+
+%environment
+    export COMPRL_CONFIG_PATH="/comprl-config/config.toml"
+
+
+%runscript
+    . /venv/bin/activate
+    "$@"
+
+
+%startscript
+    . /venv/bin/activate
+    # assumes that the config is bound at that path
+    python -m comprl.server --config "${COMPRL_CONFIG_PATH}"
+
+
+%help
+    Running the container with `instance start` will run the comprl server.
+    It is expected that the configuration file is bound to
+    `/comprl-config/config.toml` but this can be overwritten with the
+    enviornment variable `COMPRL_CONFIG_PATH`.
+
+    You can also use this container to run agents, see `run-help --app agent`.
+
+
+%appenv agent
+    export COMPRL_SERVER_URL=localhost
+    export COMPRL_SERVER_PORT=65335
+    export AGENT_TYPE=strong
+
+%appstart agent
+    . /venv/bin/activate
+    cd /comprl/comprl-hockey-agent
+    python ./run_client.py --args --agent "${AGENT_TYPE}"
+
+%apphelp agent
+    Run an example agent (using `apptainer instance start --app agent ...`).
+    You need to provide the access token via the environment variable
+    `COMPRL_ACCESS_TOKEN`.
+    Server URL and port can be overwritten with variables `COMPRL_SERVER_URL`
+    and `COMPRL_SERVER_PORT` (default is "localhost:65335").
+    Agent type (weak, strong, random) can be set via `AGENT_TYPE` (default:
+    strong).
+
+    Example:
+    ```
+    apptainer instance start -ec --app agent \
+        --env COMPRL_ACCESS_TOKEN=726a3bc3-6b47-4c33-a441-c99fe847c399 \
+        --env AGENT_TYPE=weak \
+        container.sif \
+        weak-agent
+    ```

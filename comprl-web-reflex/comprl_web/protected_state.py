@@ -39,6 +39,7 @@ class ProtectedState(reflex_local_auth.LocalAuthState):
 
 class UserDashboardState(ProtectedState):
     game_statistics: GameStatistics = GameStatistics()
+    ranked_users: list[User] = []
 
     def on_load(self):
         super().on_load()
@@ -82,26 +83,42 @@ class UserDashboardState(ProtectedState):
     def _get_ranked_users(self) -> Sequence[User]:
         with get_session() as session:
             stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
-            ranked_users = session.scalars(stmt).all()
+            return session.scalars(stmt).all()
 
-        return ranked_users
-
-    @rx.var(cache=True)
-    def ranked_users(self) -> Sequence[tuple[int, str, str]]:
-        return [
-            (i + 1, user.username, f"{user.mu:.2f} / {user.sigma:.2f}")
-            for i, user in enumerate(self._get_ranked_users())
-        ]
-
-    @rx.var(cache=True)
+    @rx.var(cache=False)
     def ranking_position(self) -> int:
         if not self.is_authenticated:
             return -1
 
-        for i, user in enumerate(self._get_ranked_users()):
-            if user.user_id == self.authenticated_user.user_id:
-                return i + 1
-        return -1
+        with get_session() as session:
+            ranked_users_query = session.query(
+                User,
+                sa.func.rank()
+                .over(order_by=(User.mu - User.sigma).desc())
+                .label("rank"),
+            ).subquery()
+
+            query = (
+                session.query(ranked_users_query)
+                .filter(ranked_users_query.c.user_id == self.authenticated_user.user_id)
+                .with_entities(ranked_users_query.c.rank)
+            )
+            rank = query.first()
+
+        if rank is None:
+            return -1
+        return rank[0]
+
+    @rx.event
+    def update_ranked_users(self) -> None:
+        self.ranked_users = self._get_ranked_users()  # type: ignore
+
+    @rx.var(cache=True)
+    def leaderboard_entries(self) -> Sequence[tuple[int, str, str]]:
+        return [
+            (i + 1, user.username, f"{user.mu:.2f} / {user.sigma:.2f}")
+            for i, user in enumerate(self.ranked_users)
+        ]
 
 
 class UserGamesState(ProtectedState):

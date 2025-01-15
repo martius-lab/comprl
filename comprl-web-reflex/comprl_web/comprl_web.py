@@ -43,7 +43,6 @@ def index() -> rx.Component:
             rx.text(f"Hello {LocalAuthState.authenticated_user.username}"),
             reflex_local_auth.pages.login_page(),
         ),
-        rx.text(f"Key: {config.get_config().registration_key}"),
     )
     return standard_layout(index_page)
 

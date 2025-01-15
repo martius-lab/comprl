@@ -40,12 +40,10 @@ class ProtectedState(reflex_local_auth.LocalAuthState):
 class UserDashboardState(ProtectedState):
     game_statistics: GameStatistics = GameStatistics()
     ranked_users: list[User] = []
-    ranking_position: int = -1
 
     def on_load(self):
         super().on_load()
         self.game_statistics = self._load_game_statistics()
-        self.ranking_position = self._get_ranking_position()
 
     def do_logout(self):
         self.game_statistics = GameStatistics()
@@ -87,6 +85,30 @@ class UserDashboardState(ProtectedState):
             stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
             return session.scalars(stmt).all()
 
+    @rx.var(cache=False)
+    def ranking_position(self) -> int:
+        if not self.is_authenticated:
+            return -1
+
+        with get_session() as session:
+            ranked_users_query = session.query(
+                User,
+                sa.func.rank()
+                .over(order_by=(User.mu - User.sigma).desc())
+                .label("rank"),
+            ).subquery()
+
+            query = (
+                session.query(ranked_users_query)
+                .filter(ranked_users_query.c.user_id == self.authenticated_user.user_id)
+                .with_entities(ranked_users_query.c.rank)
+            )
+            rank = query.first()
+
+        if rank is None:
+            return -1
+        return rank[0]
+
     @rx.event
     def update_ranked_users(self) -> None:
         self.ranked_users = self._get_ranked_users()  # type: ignore
@@ -97,16 +119,6 @@ class UserDashboardState(ProtectedState):
             (i + 1, user.username, f"{user.mu:.2f} / {user.sigma:.2f}")
             for i, user in enumerate(self.ranked_users)
         ]
-
-    def _get_ranking_position(self) -> int:
-        if not self.is_authenticated:
-            return -1
-
-        self.update_ranked_users()
-        for i, user in enumerate(self.ranked_users):
-            if user.user_id == self.authenticated_user.user_id:
-                return i + 1
-        return -1
 
 
 class UserGamesState(ProtectedState):

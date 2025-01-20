@@ -35,15 +35,23 @@ class HockeyAgent(Agent):
         self.hockey_agent = h_env.BasicOpponent(weak=weak)
 
     def get_step(self, observation: list[float]) -> list[float]:
-        return self.hockey_agent.act(observation).tolist()
+        # NOTE: If your agent is using discrete actions (0-7), you can use
+        # HockeyEnv.discrete_to_continous_action to convert the action:
+        #
+        # from hockey.hockey_env import HockeyEnv
+        # env = HockeyEnv()
+        # continuous_action = env.discrete_to_continous_action(discrete_action)
+
+        action = self.hockey_agent.act(observation).tolist()
+        return action
 
     def on_start_game(self, game_id: int) -> None:
-        print("game started")
+        print(f"Game started (ID: {game_id})")
 
     def on_end_game(self, result: bool, stats: list[float]) -> None:
         text_result = "won" if result else "lost"
         print(
-            f"game ended: {text_result} with my score: "
+            f"Game ended: {text_result} with my score: "
             f"{stats[0]} against the opponent with score: {stats[1]}"
         )
 

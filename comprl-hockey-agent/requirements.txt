@@ -1,3 +1,3 @@
 numpy
 comprl @ git+https://github.com/martius-lab/teamproject-competition-server.git#egg=comprl&subdirectory=comprl
-hockey @ git+https://git@github.com/martius-lab/laser-hockey-env.git@cc48daa135e2cca3e620b90431e57870f61d043c
+hockey @ git+https://git@github.com/martius-lab/hockey-env.git

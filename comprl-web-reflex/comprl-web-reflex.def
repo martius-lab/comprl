@@ -12,7 +12,7 @@ from: python:3.12
     export DEBIAN_FRONTEND=noninteractive
 
     apt-get update
-    apt-get install -y git caddy redis-server
+    apt-get install -y git caddy redis-server curl
 
     git clone https://github.com/martius-lab/teamproject-competition-server --depth 1 -b "{{ COMPRL_GIT_BRANCH }}" /comprl
 
@@ -49,9 +49,14 @@ from: python:3.12
 %environment
     export REDIS_URL=redis://localhost
     export COMPRL_CONFIG_PATH="/comprl-config/config.toml"
+    export NTFY_TOPIC="comprl-server-monitor"
 
 %startscript
+    curl -d "Start comprl web interface" ntfy.sh/${NTFY_TOPIC}
+
     . /venv/bin/activate
     redis-server --daemonize yes
     cd /comprl/comprl-web-reflex
     reflex run --env prod "$@"
+
+    curl -H "Priority: urgent" -H "Tags: warning" -d "comprl web interface terminated. Exit code: $?" ntfy.sh/${NTFY_TOPIC}

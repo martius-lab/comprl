@@ -11,7 +11,7 @@ from: ubuntu:24.04
     echo "deb http://archive.ubuntu.com/ubuntu noble universe" >> /etc/apt/sources.list
     apt-get update
 
-    apt-get install -y python3-dev python3-pip python3-full swig git
+    apt-get install -y curl python3-dev python3-pip python3-full swig git
 
     git clone https://github.com/martius-lab/teamproject-competition-server \
         --depth 1 -b "{{ COMPRL_GIT_BRANCH }}" /comprl
@@ -30,6 +30,7 @@ from: ubuntu:24.04
 
 %environment
     export COMPRL_CONFIG_PATH="/comprl-config/config.toml"
+    export NTFY_TOPIC="comprl-server-monitor"
 
 
 %runscript
@@ -38,9 +39,13 @@ from: ubuntu:24.04
 
 
 %startscript
+    curl -d "Start comprl.server" ntfy.sh/${NTFY_TOPIC}
+
     . /venv/bin/activate
     # assumes that the config is bound at that path
     python -m comprl.server --config "${COMPRL_CONFIG_PATH}"
+
+    curl -H "Priority: urgent" -H "Tags: warning" -d "comprl.server terminated. Exit code: $?" ntfy.sh/${NTFY_TOPIC}
 
 
 %help
@@ -58,9 +63,14 @@ from: ubuntu:24.04
     export AGENT_TYPE=strong
 
 %appstart agent
+    curl -d "Start agent ${AGENT_TYPE}" ntfy.sh/${NTFY_TOPIC}
+
     . /venv/bin/activate
     cd /comprl/comprl-hockey-agent
     python ./run_client.py --args --agent "${AGENT_TYPE}"
+
+    curl -H "Priority: urgent" -H "Tags: warning" -d "Agent terminated. Exit code: $?" ntfy.sh/${NTFY_TOPIC}
+
 
 %apphelp agent
     Run an example agent (using `apptainer instance start --app agent ...`).

@@ -15,7 +15,7 @@ class RandomAgent(Agent):
     def get_step(self, observation: list[float]) -> list[float]:
         return np.random.uniform(-1, 1, 4).tolist()
 
-    def on_start_game(self, game_id: int) -> None:
+    def on_start_game(self, game_id) -> None:
         print("game started")
 
     def on_end_game(self, result: bool, stats: list[float]) -> None:
@@ -45,8 +45,8 @@ class HockeyAgent(Agent):
         action = self.hockey_agent.act(observation).tolist()
         return action
 
-    def on_start_game(self, game_id: int) -> None:
-        print(f"Game started (ID: {game_id})")
+    def on_start_game(self, game_id) -> None:
+        print(f"Game started")
 
     def on_end_game(self, result: bool, stats: list[float]) -> None:
         text_result = "won" if result else "lost"

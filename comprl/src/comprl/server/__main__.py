@@ -54,27 +54,37 @@ class Server(IServer):
 
     def on_disconnect(self, player: IPlayer):
         """gets called when a player disconnects"""
-        log.info("Player disconnected | player_id=%s", player.id)
+        log.info(
+            "Player disconnected | user=%s player_id=%s", player.username, player.id
+        )
         self.matchmaking.remove(player.id)
         self.player_manager.remove(player)
         self.game_manager.force_game_end(player.id)
 
     def on_timeout(self, player: IPlayer, failure, timeout):
         """gets called when a player has a timeout"""
-        log.info("Player had timeout after %.0f s | player_id=%s", timeout, player.id)
+        log.info(
+            "Player had timeout after %.0f s | user=%s player_id=%s",
+            timeout,
+            player.username,
+            player.id,
+        )
         player.disconnect(reason=f"Timeout after {timeout}s")
 
     def on_remote_error(self, player: IPlayer, error: Exception):
         """gets called when there is an error in deferred"""
         if player.is_connected:
             log.error(
-                "Connected player caused remote error | player_id=%s\n%s",
+                "Connected player caused remote error | user=%s player_id=%s\n%s",
+                player.username,
                 player.id,
                 error,
             )
         else:
             log.info(
-                "Disconnected player caused remote error | player_id=%s", player.id
+                "Disconnected player caused remote error | user=%s player_id=%s",
+                player.username,
+                player.id,
             )
 
     def on_update(self):

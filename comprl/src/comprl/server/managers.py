@@ -156,8 +156,9 @@ class PlayerManager:
                 self.connected_players[player_id],
                 user.user_id,
             )
-            # set user_id of player
+            # set user_id and name of player
             player.user_id = user.user_id
+            player.username = user.username
             self._log.info(
                 "Player authenticated | user=%s player_id=%s", user.username, player_id
             )

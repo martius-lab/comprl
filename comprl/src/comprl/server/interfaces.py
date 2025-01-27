@@ -27,6 +27,7 @@ class IPlayer(abc.ABC):
     def __init__(self) -> None:
         self.id: PlayerID = IDGenerator.generate_player_id()
         self.user_id: Optional[int] = None
+        self.username: Optional[str] = None
         self.is_connected = True
 
     @abc.abstractmethod

@@ -19,9 +19,13 @@ def show_game(game: GameInfo) -> rx.Component:
         rx.table.cell(game.time),
         rx.table.cell(game.id),
         rx.table.cell(
-            rx.button(
-                "Download game data",
-                on_click=lambda: UserGamesState.download_game(game.id),
+            rx.cond(
+                game.has_game_file,
+                rx.button(
+                    "Download game data",
+                    on_click=lambda: UserGamesState.download_game(game.id),
+                ),
+                rx.text("No game data", align="center", style={"font-style": "italic"}),
             )
         ),
     )

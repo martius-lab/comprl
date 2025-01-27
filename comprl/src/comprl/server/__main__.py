@@ -95,7 +95,7 @@ class Server(IServer):
 
     def on_update(self):
         """gets called every update cycle"""
-        self.matchmaking._update()
+        self.matchmaking.update()
         self._write_monitoring_data()
 
     def _write_monitoring_data(self):

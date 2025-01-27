@@ -412,7 +412,7 @@ class MatchmakingManager:
         """
         self._queue = [entry for entry in self._queue if (entry.player_id != player_id)]
 
-    def _update(self) -> None:
+    def update(self) -> None:
         self._match_quality_scores = {}
         self._search_for_matches()
 

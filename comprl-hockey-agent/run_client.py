@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import uuid
 
 import hockey.hockey_env as h_env
 import numpy as np
@@ -46,7 +47,8 @@ class HockeyAgent(Agent):
         return action
 
     def on_start_game(self, game_id) -> None:
-        print(f"Game started")
+        game_id = uuid.UUID(int=int.from_bytes(game_id))
+        print(f"Game started (id: {game_id})")
 
     def on_end_game(self, result: bool, stats: list[float]) -> None:
         text_result = "won" if result else "lost"

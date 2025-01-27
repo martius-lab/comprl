@@ -6,7 +6,7 @@ import argparse
 import importlib.abc
 import importlib.util
 import inspect
-import logging as log
+import logging
 import os
 import pathlib
 from typing import Type, TYPE_CHECKING
@@ -17,6 +17,9 @@ from comprl.server.interfaces import IPlayer, IServer
 
 if TYPE_CHECKING:
     from comprl.server.interfaces import IGame
+
+
+log = logging.getLogger("comprl.server")
 
 
 class Server(IServer):
@@ -37,7 +40,7 @@ class Server(IServer):
 
     def on_connect(self, player: IPlayer):
         """gets called when a player connects"""
-        log.debug(f"Player {player.id} connected")
+        log.info("Player connected | player_id=%s", player.id)
         self.player_manager.add(player)
 
         def __auth(token):
@@ -51,22 +54,28 @@ class Server(IServer):
 
     def on_disconnect(self, player: IPlayer):
         """gets called when a player disconnects"""
-        log.debug(f"Player {player.id} disconnected")
+        log.info("Player disconnected | player_id=%s", player.id)
         self.matchmaking.remove(player.id)
         self.player_manager.remove(player)
         self.game_manager.force_game_end(player.id)
 
     def on_timeout(self, player: IPlayer, failure, timeout):
         """gets called when a player has a timeout"""
-        log.debug(f"Player {player.id} had timeout after {timeout}s")
+        log.info("Player had timeout after %.0f s | player_id=%s", timeout, player.id)
         player.disconnect(reason=f"Timeout after {timeout}s")
 
     def on_remote_error(self, player: IPlayer, error: Exception):
         """gets called when there is an error in deferred"""
         if player.is_connected:
-            log.error(f"Connected player caused remote error \n {error}")
+            log.error(
+                "Connected player caused remote error | player_id=%s\n%s",
+                player.id,
+                error,
+            )
         else:
-            log.debug("Disconnected player caused remote error")
+            log.info(
+                "Disconnected player caused remote error | player_id=%s", player.id
+            )
 
     def on_update(self):
         """gets called every update cycle"""
@@ -120,7 +129,11 @@ def main():
         return
 
     # set up logging
-    log.basicConfig(level=conf.log_level)
+    logging.basicConfig(
+        level=conf.log_level,
+        format="[%(asctime)s|%(name)s|%(levelname)s] %(message)s",
+    )
+    # log = logging.getLogger("comprl.server")
 
     # resolve relative game_path w.r.t. current working directory
     absolute_game_path = os.path.join(os.getcwd(), conf.game_path)

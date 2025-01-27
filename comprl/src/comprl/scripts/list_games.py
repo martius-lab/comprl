@@ -9,12 +9,7 @@ import sys
 import sqlalchemy as sa
 import tabulate
 
-try:
-    import tomllib  # type: ignore[import-not-found]
-except ImportError:
-    # tomllib was added in Python 3.11.  Older versions can use tomli
-    import tomli as tomllib  # type: ignore[import-not-found, no-redef]
-
+from comprl.server.config import load_config
 from comprl.server.data.sql_backend import Game
 from comprl.server.data.interfaces import GameEndState
 
@@ -36,11 +31,8 @@ def main() -> int:
         format="[%(asctime)s] [%(name)s | %(levelname)s] %(message)s",
     )
 
-    with open(args.config, "rb") as f:
-        data = tomllib.load(f)["CompetitionServer"]
-
-    db_path = data["database_path"]
-    engine = sa.create_engine(f"sqlite:///{db_path}")
+    config = load_config(args.config)
+    engine = sa.create_engine(f"sqlite:///{config.database_path}")
 
     fields = [
         "start_time",

@@ -50,6 +50,8 @@ class Config:
 
     #: Key that has to be specified to register
     registration_key: str = ""
+    #: URL of the competition server
+    server_url: str = "comprl.example.com"
 
 
 _config: Config | None = None

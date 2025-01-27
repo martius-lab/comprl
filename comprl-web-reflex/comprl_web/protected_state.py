@@ -1,6 +1,7 @@
 """State for the protected pages."""
 
 import dataclasses
+import textwrap
 import pathlib
 from typing import Sequence
 
@@ -110,6 +111,17 @@ class UserDashboardState(ProtectedState):
         if rank is None:
             return -1
         return rank[0]
+
+    @rx.var(cache=True)
+    def client_config(self) -> str:
+        cfg = config.get_config()
+        return textwrap.dedent(
+            f"""
+            export COMPRL_SERVER_URL={cfg.server_url}
+            export COMPRL_SERVER_PORT={cfg.port}
+            export COMPRL_ACCESS_TOKEN={self.authenticated_user.token}
+            """
+        ).strip()
 
     @rx.event
     def update_ranked_users(self) -> None:

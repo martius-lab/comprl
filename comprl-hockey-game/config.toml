@@ -14,3 +14,4 @@ max_parallel_games = 100
 monitor_log_path = "/dev/shm/comprl_monitor"
 
 registration_key = "secret"
+server_url = "comprl.example.com"

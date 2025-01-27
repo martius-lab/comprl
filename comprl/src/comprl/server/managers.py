@@ -323,6 +323,9 @@ class MatchmakingManager:
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus
 
+        # save matchmaking scores for debugging
+        self._match_quality_scores: list[tuple[str, str, float]] = []
+
     def try_match(self, player_id: PlayerID) -> None:
         """
         Tries to add a player with the given player ID to the matchmaking queue.
@@ -391,18 +394,9 @@ class MatchmakingManager:
         self._queue = [entry for entry in self._queue if (entry.player_id != player_id)]
 
     def _update(self) -> None:
-        self._match_quality_scores: list[tuple[str, str, float]] = []
-
-        # TODO: don't print to stdout but to shared memory file?
-        # print("Players in queue:")
-        # for entry in self._queue:
-        #     print(entry)
-
+        self._match_quality_scores = []
         self._search_for_matches()
 
-        # print("Match quality scores:")
-        # for u1, u2, score in self._match_quality_scores:
-        #     print(f"{u1} vs {u2}: {score}")
 
     def _search_for_matches(self, start_index: int = 0) -> None:
         """

@@ -3,6 +3,7 @@
 import dataclasses
 import pathlib
 import os
+from typing import Optional
 
 try:
     import tomllib  # type: ignore[import-not-found]
@@ -41,7 +42,11 @@ class Config:
     #: (Minutes waiting * percentage) added as a time bonus for waiting players
     percental_time_bonus: float = 0.1
 
-    # key that has to be specified to register
+    #: File to which monitoring information is written.  Ideally use a in-memory file
+    #: (e.g. in /dev/shm).
+    monitor_log_path: Optional[pathlib.Path] = None
+
+    #: Key that has to be specified to register
     registration_key: str = ""
 
 

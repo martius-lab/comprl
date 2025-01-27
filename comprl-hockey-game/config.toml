@@ -10,3 +10,4 @@
     percentage_min_players_waiting = 0.1
     percental_time_bonus = 0.1
     registration_key = "secret"
+    monitor_log_path = "/dev/shm/comprl_monitor"

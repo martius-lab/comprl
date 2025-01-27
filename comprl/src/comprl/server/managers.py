@@ -461,7 +461,7 @@ class MatchmakingManager:
         rng = np.random.default_rng()
 
         i = 0
-        while i < len(self._queue):
+        while i < len(self._queue) - 1:
             player1 = self._queue[i]
             candidates = self._queue[i + 1 :]
 

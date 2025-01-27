@@ -27,5 +27,31 @@ export COMPRL_ACCESS_TOKEN=<YOUR ACCESS TOKEN>
 ```
 Then just call
 ```
-python3 ./run_client.p --args --agent=strong
+python3 ./run_client.py --args --agent=strong
 ```
+
+
+## The Auto-Restart Wrapper Script
+
+
+`autostart.sh` is a wrapper script around `run_client.py`, that is meant to
+automatically restart the client in case of infrequent issues like connection
+hiccups or server restarts.  To use it simply replace `python3 ./run_client.py`
+with `bash ./autorestart.sh` in the examples above.  Example:
+```
+bash ./autorestart.sh --server-url <URL> --server-port <PORT> \
+    --token <YOUR ACCESS TOKEN> \
+    --args --agent=strong
+```
+
+It keeps track of the number of restarts within a certain time window.  It will
+stop if there are too many restarts (e.g. because an issue in the client
+itself).  The length of the time window and the restart limit can be configured
+via variables at the top of the script.
+
+To stop the script, you need to press Ctrl+C twice.  Once to stop the client
+and then again to stop the wrapper script.
+
+You can enable notifications about restarts on ntfy.sh by setting a topic name
+to `NTFY_TOPIC` at the top of the script.  Once set, open https://ntfy.sh/TOPIC
+in your browser (or use the app on your phone) to get notified.

@@ -19,7 +19,7 @@ from: ubuntu:24.04
     python3 -m venv /venv
     . /venv/bin/activate
 
-    pip install /comprl/comprl
+    pip install "/comprl/comprl[monitor]"
     pip install -r /comprl/comprl-hockey-game/requirements.txt
 
 

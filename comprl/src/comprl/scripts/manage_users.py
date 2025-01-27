@@ -23,13 +23,20 @@ app = typer.Typer()
 @app.command()
 def list(
     database: Annotated[str, typer.Argument(help="Path to the database file.")],
+    ranked: Annotated[
+        bool, typer.Option("--ranked", help="Order user based on ranking.")
+    ],
 ) -> None:
     """List all users."""
     engine = sa.create_engine(f"sqlite:///{database}")
 
     data = []
     with sa.orm.Session(engine) as session:
-        users = session.scalars(sa.select(User)).all()
+        if ranked:
+            stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
+        else:
+            stmt = sa.select(User)
+        users = session.scalars(stmt).all()
 
         for user in users:
             num_games_played = (

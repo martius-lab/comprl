@@ -41,6 +41,8 @@ class Config:
     percentage_min_players_waiting: float = 0.1
     #: (Minutes waiting * percentage) added as a time bonus for waiting players
     percental_time_bonus: float = 0.1
+    #: Maximum number of games that can be played in parallel
+    max_parallel_games: int = 100
 
     #: File to which monitoring information is written.  Ideally use a in-memory file
     #: (e.g. in /dev/shm).

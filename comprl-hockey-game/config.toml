@@ -1,7 +1,7 @@
 [CompetitionServer]
     port = 65335
     timeout = 10
-    log_level = "DEBUG"
+    log_level = "INFO"
     game_path = "hockey_game.py"
     game_class = "HockeyGame"
     database_path = "hockey.db"
@@ -9,5 +9,7 @@
     match_quality_threshold = 0.8
     percentage_min_players_waiting = 0.1
     percental_time_bonus = 0.1
-    registration_key = "secret"
+    max_parallel_games = 100
     monitor_log_path = "/dev/shm/comprl_monitor"
+
+    registration_key = "secret"

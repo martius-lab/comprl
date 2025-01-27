@@ -2,10 +2,14 @@
 This module contains classes that manage game instances and players.
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from openskill.models import PlackettLuce
 from typing import Type, NamedTuple
+
+import numpy as np
 
 from comprl.server.interfaces import IGame, IPlayer
 from comprl.shared.types import GameID, PlayerID
@@ -288,9 +292,24 @@ class QueueEntry(NamedTuple):
     user: User
     in_queue_since: datetime
 
+    def is_legal_match(self, other: QueueEntry) -> bool:
+        """Checks if a match with the other player is legal."""
+        # prevent the user from playing against himself
+        if self.user.user_id == other.user.user_id:
+            return False
+
+        # do not match if both players are bots
+        if (
+            UserRole(self.user.role) == UserRole.BOT
+            and UserRole(other.user.role) == UserRole.BOT
+        ):
+            return False
+
+        return True
+
     def __str__(self) -> str:
         return (
-            f"Player {self.player_id} ({self.user.username}) joined the queue at"
+            f"Player {self.player_id} ({self.user.username}) in queue since"
             f" {self.in_queue_since}"
         )
 
@@ -323,8 +342,8 @@ class MatchmakingManager:
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus
 
-        # save matchmaking scores for debugging
-        self._match_quality_scores: list[tuple[str, str, float]] = []
+        # cache matchmaking scores
+        self._match_quality_scores: dict[frozenset[str], float] = {}
 
     def try_match(self, player_id: PlayerID) -> None:
         """
@@ -394,27 +413,8 @@ class MatchmakingManager:
         self._queue = [entry for entry in self._queue if (entry.player_id != player_id)]
 
     def _update(self) -> None:
-        self._match_quality_scores = []
+        self._match_quality_scores = {}
         self._search_for_matches()
-
-    def _search_for_matches(self, start_index: int = 0) -> None:
-        """
-        Updates the matchmaking manager.
-
-        start_index (int, optional): The position in queue to start matching from.
-        Used for recursion. Defaults to 0.
-        """
-        if len(self._queue) < self._min_players_waiting():
-            return
-
-        for i in range(start_index, len(self._queue)):
-            for j in range(i + 1, len(self._queue)):
-                # try to match all players against each other
-                if self._try_start_game(self._queue[i], self._queue[j]):
-                    # Players are matched and removed from queue. Continue searching.
-                    self._search_for_matches(i)
-                    return
-        return
 
     def _min_players_waiting(self) -> int:
         """
@@ -427,60 +427,93 @@ class MatchmakingManager:
             len(self.player_manager.auth_players) * self._percentage_min_players_waiting
         )
 
-    def _try_start_game(self, player1: QueueEntry, player2: QueueEntry) -> bool:
+    def _compute_match_qualities(
+        self, player1: QueueEntry, candidates: list[QueueEntry]
+    ) -> list[tuple[QueueEntry, float]]:
         """
-        Tries to start a game with the given players.
+        Computes the match qualities between a player and a list of candidates.
 
         Args:
             player1: The first player.
-            player2: The second player.
+            candidates: The list of candidates.
 
         Returns:
-            bool: True if the game was started, False otherwise.
+            list[tuple[QueueEntry, float]]: The match qualities.
         """
-        # prevent the user from playing against himself
-        if player1.user.user_id == player2.user.user_id:
-            return False
+        return [
+            (candidate, self._rate_match_quality(player1, candidate))
+            for candidate in candidates
+            if player1.is_legal_match(candidate)
+        ]
 
-        # do not match if both players are bots
-        if (
-            UserRole(player1.user.role) == UserRole.BOT
-            and UserRole(player2.user.role) == UserRole.BOT
-        ):
-            return False
+    def _search_for_matches(self) -> None:
+        """Search for matches in the queue.
 
-        match_quality = self._rate_match_quality(player1, player2)
-        self._match_quality_scores.append(
-            (player1.user.username, player2.user.username, match_quality)
-        )
+        For each player in the queue, try to find a match with another waiting player.
+        If more than one match is possible (i.e. match quality is above the threshold),
+        sample from all options with probabilities based on the match qualities.
 
-        if match_quality > self._match_quality_threshold:
-            # match the players. We could search for best match but using the first adds
-            # a bit of diversity and the players in front of the queue are waiting
-            # longer, so its fairer for them.
+        If a match is found, directly start a game.
+        """
+        if len(self._queue) < self._min_players_waiting():
+            return
 
-            players = [
-                self.player_manager.get_player_by_id(player1.player_id),
-                self.player_manager.get_player_by_id(player2.player_id),
+        rng = np.random.default_rng()
+
+        i = 0
+        while i < len(self._queue):
+            player1 = self._queue[i]
+            candidates = self._queue[i + 1 :]
+
+            match_qualities = self._compute_match_qualities(player1, candidates)
+            # filter out matches below the quality threshold
+            match_qualities = [
+                mq for mq in match_qualities if mq[1] > self._match_quality_threshold
             ]
 
-            filtered_players = [player for player in players if player is not None]
+            if match_qualities:
+                # separate players and match qualities
+                matched_players, matched_qualities = zip(*match_qualities, strict=True)
 
-            if len(filtered_players) != 2:
-                self._log.error("Player was in queue but not in player manager")
-                if players[0] is None:
-                    self.remove(player1.player_id)
-                if players[1] is None:
-                    self.remove(player2.player_id)
-                return False
+                # normalize match qualities
+                quality_sum = sum(matched_qualities)
+                normalised_qualities = [q / quality_sum for q in matched_qualities]
 
-            self.remove(player1.player_id)
-            self.remove(player2.player_id)
+                # sample based on quality
+                match_idx = rng.choice(len(match_qualities), p=normalised_qualities)
+                matched_player, matched_quality = match_qualities[match_idx]
+                self._log.debug(
+                    "Matched players %s and %s, quality: %f",
+                    player1.player_id,
+                    matched_player.player_id,
+                    matched_quality,
+                )
+                self._start_game(player1, matched_player)
+            else:
+                # Only increment if no match was found.  If a match was found, the entry
+                # previously at i has been removed, so the next entry is now at i.
+                i += 1
 
-            game = self.game_manager.start_game(filtered_players)
-            game.add_finish_callback(self._end_game)
-            return True
-        return False
+    def _start_game(self, player1: QueueEntry, player2: QueueEntry) -> None:
+        """Start a game with the given players."""
+        players = [
+            self.player_manager.get_player_by_id(player1.player_id),
+            self.player_manager.get_player_by_id(player2.player_id),
+        ]
+
+        if None in players:
+            self._log.error("Player was in queue but not in player manager")
+            if players[0] is None:
+                self.remove(player1.player_id)
+            if players[1] is None:
+                self.remove(player2.player_id)
+            return
+
+        self.remove(player1.player_id)
+        self.remove(player2.player_id)
+
+        game = self.game_manager.start_game(players)  # type: ignore
+        game.add_finish_callback(self._end_game)
 
     def _rate_match_quality(self, player1: QueueEntry, player2: QueueEntry) -> float:
         """
@@ -493,6 +526,10 @@ class MatchmakingManager:
         Returns:
             float: The match quality.
         """
+        cache_key = frozenset([player1.user.username, player2.user.username])
+        if cache_key in self._match_quality_scores:
+            return self._match_quality_scores[cache_key]
+
         now = datetime.now()
         waiting_time_p1 = (now - player1.in_queue_since).total_seconds()
         waiting_time_p2 = (now - player2.in_queue_since).total_seconds()
@@ -511,7 +548,13 @@ class MatchmakingManager:
             [player2.user.mu, player2.user.sigma], "player2"
         )
         draw_prob = self.model.predict_draw([[rating_p1], [rating_p2]])
-        return draw_prob + waiting_bonus
+
+        match_quality = draw_prob + waiting_bonus
+
+        # log for debugging
+        self._match_quality_scores[cache_key] = match_quality
+
+        return match_quality
 
     def _end_game(self, game: IGame) -> None:
         """

@@ -131,8 +131,8 @@ class Server(IServer):
                 )
 
             plog("\nMatch quality scores:")
-            for u1, u2, score in self.matchmaking._match_quality_scores:
-                plog(f"\t{u1} vs {u2}: {score}")
+            for (u1, u2), score in self.matchmaking._match_quality_scores.items():
+                plog(f"\t{u1} vs {u2}: {score:0.4f}")
 
             plog("\nEND")
 

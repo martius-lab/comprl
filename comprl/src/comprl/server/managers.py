@@ -397,7 +397,6 @@ class MatchmakingManager:
         self._match_quality_scores = []
         self._search_for_matches()
 
-
     def _search_for_matches(self, start_index: int = 0) -> None:
         """
         Updates the matchmaking manager.

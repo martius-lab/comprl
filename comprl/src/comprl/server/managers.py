@@ -2,7 +2,7 @@
 This module contains classes that manage game instances and players.
 """
 
-import logging as log
+import logging
 from datetime import datetime
 from openskill.models import PlackettLuce
 from typing import Type, NamedTuple
@@ -28,6 +28,8 @@ class GameManager:
         self.games: dict[GameID, IGame] = {}
         self.game_type = game_type
 
+        self._log = logging.getLogger("comprl.gamemanager")
+
     def start_game(self, players: list[IPlayer]) -> IGame:
         """
         Starts a new game instance with the given players.
@@ -41,7 +43,12 @@ class GameManager:
         game = self.game_type(players)
         self.games[game.id] = game
 
-        log.debug("Game started with players: " + str([p.id for p in players]))
+        self._log.info(
+            "Game started | game_id=%s player1=%s player2=%s",
+            game.id,
+            players[0].id,
+            players[1].id,
+        )
 
         game.add_finish_callback(self.end_game)
         game.start()
@@ -57,11 +64,16 @@ class GameManager:
         """
 
         if game.id in self.games:
+            game_duration = (datetime.now() - game.start_time).total_seconds()
+            self._log.debug(
+                "Game ended after %.0f s | game_id=%s", game_duration, game.id
+            )
+
             game_result = game.get_result()
             if game_result is not None:
                 GameData(get_config().database_path).add(game_result)
             else:
-                log.error(f"Game had no valid result. Game-ID: {game.id}")
+                self._log.error("Game had no valid result | game_id=%s", game.id)
             del self.games[game.id]
 
     def force_game_end(self, player_id: PlayerID):
@@ -77,7 +89,11 @@ class GameManager:
                     involved_games.append(game)
                     break
         for game in involved_games:
-            log.debug("Game was forced to end because of a disconnected player")
+            self._log.info(
+                "Game was forced to end because of a disconnected player"
+                " | player_id=%s",
+                player_id,
+            )
             game.force_end(player_id=player_id)
 
     def get(self, game_id: GameID) -> IGame | None:
@@ -101,6 +117,8 @@ class PlayerManager:
     def __init__(self) -> None:
         self.auth_players: dict[PlayerID, tuple[IPlayer, int]] = {}
         self.connected_players: dict[PlayerID, IPlayer] = {}
+
+        self._log = logging.getLogger("comprl.playermanager")
 
     def add(self, player: IPlayer) -> None:
         """
@@ -138,9 +156,10 @@ class PlayerManager:
                 self.connected_players[player_id],
                 user.user_id,
             )
-            # set user_id of player
+            # set user_id and name of player
             player.user_id = user.user_id
-            log.debug(
+            player.username = user.username
+            self._log.info(
                 "Player authenticated | user=%s player_id=%s", user.username, player_id
             )
             return True
@@ -289,6 +308,8 @@ class MatchmakingManager:
             player_manager (PlayerManager): The player manager object.
             game_manager (GameManager): The game manager object.
         """
+        self._log = logging.getLogger("comprl.gamemanager")
+
         self.player_manager = player_manager
         self.game_manager = game_manager
 
@@ -301,6 +322,9 @@ class MatchmakingManager:
         self._match_quality_threshold = config.match_quality_threshold
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus
+
+        # save matchmaking scores for debugging
+        self._match_quality_scores: list[tuple[str, str, float]] = []
 
     def try_match(self, player_id: PlayerID) -> None:
         """
@@ -332,14 +356,16 @@ class MatchmakingManager:
         """
         user_id = self.player_manager.get_user_id(player_id)
         if user_id is None:
-            log.error(f"Player {player_id} is not authenticated but tried to queue.")
+            self._log.error(
+                f"Player {player_id} is not authenticated but tried to queue."
+            )
             return
         user = self.player_manager.get_user(user_id)
         if user is None:
-            log.error(
+            self._log.error(
                 (
                     "Failed to add user to queue, user not found in database"
-                    " | player_id={%s}, user_id={%d}"
+                    " | player_id={%s} user_id={%d}"
                 ),
                 player_id,
                 user_id,
@@ -349,8 +375,8 @@ class MatchmakingManager:
         # check if enough players are waiting
         self._queue.append(QueueEntry(player_id, user, datetime.now()))
 
-        log.debug(
-            "Player was added to the queue | user=%s role=%s player_id=%s",
+        self._log.info(
+            "Player added to queue | user=%s role=%s player_id=%s",
             user.username,
             user.role,
             player_id,
@@ -368,18 +394,8 @@ class MatchmakingManager:
         self._queue = [entry for entry in self._queue if (entry.player_id != player_id)]
 
     def _update(self) -> None:
-        self._match_quality_scores: list[tuple[str, str, float]] = []
-
-        # TODO: don't print to stdout but to shared memory file?
-        # print("Players in queue:")
-        # for entry in self._queue:
-        #     print(entry)
-
+        self._match_quality_scores = []
         self._search_for_matches()
-
-        # print("Match quality scores:")
-        # for u1, u2, score in self._match_quality_scores:
-        #     print(f"{u1} vs {u2}: {score}")
 
     def _search_for_matches(self, start_index: int = 0) -> None:
         """
@@ -451,7 +467,7 @@ class MatchmakingManager:
             filtered_players = [player for player in players if player is not None]
 
             if len(filtered_players) != 2:
-                log.error("Player was in queue but not in player manager")
+                self._log.error("Player was in queue but not in player manager")
                 if players[0] is None:
                     self.remove(player1.player_id)
                 if players[1] is None:

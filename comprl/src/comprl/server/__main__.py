@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import importlib.abc
 import importlib.util
 import inspect
-import logging as log
+import logging
 import os
 import pathlib
+import time
 from typing import Type, TYPE_CHECKING
 
 from comprl.server import config, networking
@@ -19,6 +21,9 @@ if TYPE_CHECKING:
     from comprl.server.interfaces import IGame
 
 
+log = logging.getLogger("comprl.server")
+
+
 class Server(IServer):
     """class for server"""
 
@@ -26,6 +31,10 @@ class Server(IServer):
         self.game_manager = GameManager(game_type)
         self.player_manager = PlayerManager()
         self.matchmaking = MatchmakingManager(self.player_manager, self.game_manager)
+
+        self._monitor_log_path = config.get_config().monitor_log_path
+        self._monitor_update_interval_s = 10
+        self._last_mointor_update = 0
 
     def on_start(self):
         """gets called when the server starts"""
@@ -37,7 +46,7 @@ class Server(IServer):
 
     def on_connect(self, player: IPlayer):
         """gets called when a player connects"""
-        log.debug(f"Player {player.id} connected")
+        log.info("Player connected | player_id=%s", player.id)
         self.player_manager.add(player)
 
         def __auth(token):
@@ -51,26 +60,81 @@ class Server(IServer):
 
     def on_disconnect(self, player: IPlayer):
         """gets called when a player disconnects"""
-        log.debug(f"Player {player.id} disconnected")
+        log.info(
+            "Player disconnected | user=%s player_id=%s", player.username, player.id
+        )
         self.matchmaking.remove(player.id)
         self.player_manager.remove(player)
         self.game_manager.force_game_end(player.id)
 
     def on_timeout(self, player: IPlayer, failure, timeout):
         """gets called when a player has a timeout"""
-        log.debug(f"Player {player.id} had timeout after {timeout}s")
+        log.info(
+            "Player had timeout after %.0f s | user=%s player_id=%s",
+            timeout,
+            player.username,
+            player.id,
+        )
         player.disconnect(reason=f"Timeout after {timeout}s")
 
     def on_remote_error(self, player: IPlayer, error: Exception):
         """gets called when there is an error in deferred"""
         if player.is_connected:
-            log.error(f"Connected player caused remote error \n {error}")
+            log.error(
+                "Connected player caused remote error | user=%s player_id=%s\n%s",
+                player.username,
+                player.id,
+                error,
+            )
         else:
-            log.debug("Disconnected player caused remote error")
+            log.info(
+                "Disconnected player caused remote error | user=%s player_id=%s",
+                player.username,
+                player.id,
+            )
 
     def on_update(self):
         """gets called every update cycle"""
         self.matchmaking._update()
+        self._write_monitoring_data()
+
+    def _write_monitoring_data(self):
+        if not self._monitor_log_path:
+            return
+
+        # only update every _monitor_update_interval_s
+        now = time.time()
+        if now - self._last_mointor_update < self._monitor_update_interval_s:
+            return
+
+        self._last_mointor_update = now
+        with open(self._monitor_log_path, "w") as f:
+
+            def plog(*args):
+                print(*args, file=f)
+
+            plog(datetime.datetime.now().isoformat(sep=" "))
+
+            plog("\nConnected players:")
+            for player in self.player_manager.connected_players.values():
+                plog(f"\t{player.username} [{player.id}]")
+
+            plog("\nGames:")
+            for game in self.game_manager.games.values():
+                plog(f"\t{game.id} {tuple(str(pid) for pid in game.players)}")
+
+            plog("\nPlayers in queue:")
+            for entry in self.matchmaking._queue:
+                plog(
+                    f"\t{entry.user.username} [{entry.player_id}]"
+                    f" since {entry.in_queue_since}",
+                )
+
+            plog("\nMatch quality scores:")
+            for u1, u2, score in self.matchmaking._match_quality_scores:
+                plog(f"\t{u1} vs {u2}: {score}")
+
+            plog("\nEND")
 
 
 def load_class(module_path: str, class_name: str):
@@ -120,7 +184,11 @@ def main():
         return
 
     # set up logging
-    log.basicConfig(level=conf.log_level)
+    logging.basicConfig(
+        level=conf.log_level,
+        format="[%(asctime)s|%(name)s|%(levelname)s] %(message)s",
+    )
+    # log = logging.getLogger("comprl.server")
 
     # resolve relative game_path w.r.t. current working directory
     absolute_game_path = os.path.join(os.getcwd(), conf.game_path)

@@ -1,6 +1,6 @@
 """contains the networking components of the server"""
 
-import logging as log
+import logging
 from typing import Callable, Any
 
 from twisted.internet.interfaces import IAddress
@@ -15,6 +15,9 @@ from comprl.shared.commands import Auth, EndGame, Error, Ready, StartGame, Step,
 from comprl.shared.types import GameID
 
 VERSION: int = 1
+
+
+log = logging.getLogger("comprl.networking")
 
 
 class COMPServerProtocol(amp.AMP):

@@ -43,7 +43,12 @@ class GameManager:
         game = self.game_type(players)
         self.games[game.id] = game
 
-        self._log.info("Game started with players: " + str([p.id for p in players]))
+        self._log.info(
+            "Game started | game_id=%s player1=%s player2=%s",
+            game.id,
+            players[0].id,
+            players[1].id,
+        )
 
         game.add_finish_callback(self.end_game)
         game.start()
@@ -59,6 +64,11 @@ class GameManager:
         """
 
         if game.id in self.games:
+            game_duration = (datetime.now() - game.start_time).total_seconds()
+            self._log.debug(
+                "Game ended after %.0f s | game_id=%s", game_duration, game.id
+            )
+
             game_result = game.get_result()
             if game_result is not None:
                 GameData(get_config().database_path).add(game_result)

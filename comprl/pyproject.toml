@@ -26,6 +26,8 @@ dependencies = [
 
 [project.scripts]
 comprl-users = "comprl.scripts.manage_users:app"
+comprl-games = "comprl.scripts.list_games:main"
+comprl-score-decay = "comprl.scripts.score_decay:main"
 
 [project.optional-dependencies]
 # Here you can specify optional dependencies (e.g. for tools that are only needed during

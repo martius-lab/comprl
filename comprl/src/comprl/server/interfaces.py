@@ -150,26 +150,27 @@ class IGame(abc.ABC):
         Args:
             reason (str): The reason why the game has ended. Defaults to "unknown".
         """
-        # store actions:
-        try:
-            # TODO: maybe add multithreading here to ease the load on the main server
-            # thread as storing the actions can take a while
-            self.game_info["actions"] = np.array(self.all_actions)
+        if self.disconnected_player_id is None:
+            # store actions:
+            try:
+                # TODO: maybe add multithreading here to ease the load on the main
+                # server thread as storing the actions can take a while
+                self.game_info["actions"] = np.array(self.all_actions)
 
-            data_dir = get_config().data_dir
-            # should already be checked during config loading but just to be sure
-            assert data_dir.is_dir(), f"data_dir '{data_dir}' is not a directory"
-            game_actions_dir = data_dir / "game_actions"
-            game_actions_dir.mkdir(exist_ok=True)
-            output_file = game_actions_dir / f"{self.id}.pkl"
+                data_dir = get_config().data_dir
+                # should already be checked during config loading but just to be sure
+                assert data_dir.is_dir(), f"data_dir '{data_dir}' is not a directory"
+                game_actions_dir = data_dir / "game_actions"
+                game_actions_dir.mkdir(exist_ok=True)
+                output_file = game_actions_dir / f"{self.id}.pkl"
 
-            logging.debug("Save game actions to %s", output_file)
-            with open(output_file, "wb") as f:
-                pickle.dump(self.game_info, f)
-        except Exception as e:
-            logging.error(
-                "Error while saving game actions: %s | game_id=%s", e, self.id
-            )
+                logging.debug("Save game actions to %s", output_file)
+                with open(output_file, "wb") as f:
+                    pickle.dump(self.game_info, f)
+            except Exception as e:
+                logging.error(
+                    "Error while saving game actions: %s | game_id=%s", e, self.id
+                )
 
         # notify end
         for callback in self.finish_callbacks:

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comprl"
-version = "0.2.2-dev"
+version = "0.2.3-dev"
 description = "Competition Server for Reinforcement Agents -- Teamprojekt WS 23/24"
 authors = [
     {name = "Author Name", email = "optional@example.com"},

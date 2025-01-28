@@ -95,7 +95,7 @@ class Server(IServer):
 
     def on_update(self):
         """gets called every update cycle"""
-        self.matchmaking._update()
+        self.matchmaking.update()
         self._write_monitoring_data()
 
     def _write_monitoring_data(self):
@@ -115,15 +115,18 @@ class Server(IServer):
 
             plog(datetime.datetime.now().isoformat(sep=" "))
 
-            plog("\nConnected players:")
+            n_connected = len(self.player_manager.connected_players)
+            plog(f"\nConnected players ({n_connected}):")
             for player in self.player_manager.connected_players.values():
                 plog(f"\t{player.username} [{player.id}]")
 
-            plog("\nGames:")
+            n_games = len(self.game_manager.games)
+            plog(f"\nGames ({n_games}):")
             for game in self.game_manager.games.values():
                 plog(f"\t{game.id} {tuple(str(pid) for pid in game.players)}")
 
-            plog("\nPlayers in queue:")
+            n_queue = len(self.matchmaking._queue)
+            plog(f"\nPlayers in queue ({n_queue}):")
             for entry in self.matchmaking._queue:
                 plog(
                     f"\t{entry.user.username} [{entry.player_id}]"

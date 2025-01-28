@@ -15,7 +15,7 @@ from comprl.server.interfaces import IGame, IPlayer
 from comprl.shared.types import GameID, PlayerID
 from comprl.server.data import GameData, UserData
 from comprl.server.data.sql_backend import User
-from comprl.server.data.interfaces import UserRole
+from comprl.server.data.interfaces import UserRole, GameEndState
 from comprl.server.config import get_config
 
 
@@ -341,6 +341,7 @@ class MatchmakingManager:
         self._match_quality_threshold = config.match_quality_threshold
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus
+        self._max_parallel_games = config.max_parallel_games
 
         # cache matchmaking scores
         self._match_quality_scores: dict[frozenset[str], float] = {}
@@ -412,7 +413,8 @@ class MatchmakingManager:
         """
         self._queue = [entry for entry in self._queue if (entry.player_id != player_id)]
 
-    def _update(self) -> None:
+    def update(self) -> None:
+        """Try to match players in the queue and start games."""
         self._match_quality_scores = {}
         self._search_for_matches()
 
@@ -462,6 +464,16 @@ class MatchmakingManager:
 
         i = 0
         while i < len(self._queue) - 1:
+            # stop early if the limit for parallel games is reached
+            num_games = len(self.game_manager.games)
+            if num_games >= self._max_parallel_games:
+                self._log.debug(
+                    "Limit for parallel games is reached (running: %d, limit: %d).",
+                    num_games,
+                    self._max_parallel_games,
+                )
+                return
+
             player1 = self._queue[i]
             candidates = self._queue[i + 1 :]
 
@@ -557,15 +569,15 @@ class MatchmakingManager:
         return match_quality
 
     def _end_game(self, game: IGame) -> None:
-        """
-        Readds players to queue after game has ended.
+        """Update user ratings and re-add players to the queue.
 
         Args:
-            game (IGame): The game to be ended.
+            game: The game that is ending.
         """
         # update elo values
         result = game.get_result()
-        if result is not None:
+        # if a player disconnected during the game, simply don't update the ratings
+        if result is not None and result.end_state is not GameEndState.DISCONNECTED:
             mu_p1, sigma_p1 = self.player_manager.get_matchmaking_parameters(
                 result.user1_id
             )

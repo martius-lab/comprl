@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Instead, derive a custom class from it, that implements the `get_step` method.
 - BREAKING: Relative paths in the config file are now resolved relative to the
   config file location instead of to the working directory.
+- Matchmaking now samples from all candidates with quality above the threshold instead
+  of using the first in the list.
 
 ## Removed
 - The `Agent.event` decorator has been removed.  Instead of using it, create

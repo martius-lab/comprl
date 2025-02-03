@@ -1,6 +1,7 @@
 """State for the protected pages."""
 
 import dataclasses
+import pathlib
 from typing import Sequence
 
 import reflex as rx
@@ -27,6 +28,7 @@ class GameInfo:
     result: str
     time: str
     id: str
+    has_game_file: bool
 
 
 class ProtectedState(reflex_local_auth.LocalAuthState):
@@ -217,6 +219,9 @@ class UserGamesState(ProtectedState):
         self.search_id = ""
         self.load_user_games()
 
+    def _get_game_file_path(self, game_id: str) -> pathlib.Path:
+        return config.get_config().data_dir / "game_actions" / f"{game_id}.pkl"
+
     @rx.event
     def load_user_games(self) -> None:
         self.user_games = []
@@ -230,6 +235,8 @@ class UserGamesState(ProtectedState):
             else:
                 result = "Unknown"
 
+            game_file_exists = self._get_game_file_path(game.game_id).exists()
+
             self.user_games.append(
                 GameInfo(
                     game.user1_.username,
@@ -237,6 +244,7 @@ class UserGamesState(ProtectedState):
                     result,
                     str(game.start_time.strftime("%Y-%m-%d %H:%M:%S")),
                     str(game.game_id),
+                    game_file_exists,
                 )
             )
 
@@ -244,12 +252,11 @@ class UserGamesState(ProtectedState):
 
     @rx.event
     def download_game(self, game_id: str):
-        game_file_name = f"{game_id}.pkl"
-        game_file_path = config.get_config().data_dir / "game_actions" / game_file_name
+        game_file_path = self._get_game_file_path(game_id)
 
         try:
             data = game_file_path.read_bytes()
         except Exception:
             raise RuntimeError("Game file not found") from None
 
-        return rx.download(filename=game_file_name, data=data)
+        return rx.download(filename=game_file_path.name, data=data)

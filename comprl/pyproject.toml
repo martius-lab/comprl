@@ -31,6 +31,8 @@ comprl-users = "comprl.scripts.manage_users:app"
 # Here you can specify optional dependencies (e.g. for tools that are only needed during
 # development).  To install them use `pip install ".[dev]"` (the quotes are needed!).
 
+monitor = ["textual"]
+
 test = ["pytest"]
 # here you can also list `types-*` stub packages for third-party packages
 mypy = ["mypy", "types-tabulate"]
@@ -67,7 +69,8 @@ exclude = ["build", "examples", "presentation"]
 # complaints from mypy)
 module = [
     "hockey.*",
-    "pytest",
     "omegaconf",
+    "pytest",
+    "textual.*",
 ]
 ignore_missing_imports = true

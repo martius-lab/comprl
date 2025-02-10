@@ -70,9 +70,12 @@ def set_config(config: Config):
 
 
 def load_config(
-    config_file: str | os.PathLike, dotlist_overwrites: list[str]
+    config_file: str | os.PathLike, dotlist_overwrites: list[str] | None = None
 ) -> Config:
     """Load config from config file and optional dotlist overwrites."""
+    if dotlist_overwrites is None:
+        dotlist_overwrites = []
+
     config_file = pathlib.Path(config_file)
 
     wconf = variconf.WConf(Config)

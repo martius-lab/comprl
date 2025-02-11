@@ -1,6 +1,0 @@
-[Web]
-    user_db_path = "user.db"
-    user_db_name = "data"
-    game_db_path = "game.db"
-    game_db_name = "data"
-    key = "1234"

@@ -16,6 +16,7 @@ def leaderboard() -> rx.Component:
             columns=["Ranking", "Username", "µ / Σ"],
             search=True,
             sort=False,
+            limit=100,
             pagination=True,
             on_mount=UserDashboardState.update_ranked_users,
         ),

@@ -120,10 +120,15 @@ class HockeyGame(IGame):
             ] = self.observations_this_round
             self.observations_this_round = []
 
-            # reset env, swap player side, swap player ids and decrease remaining rounds
+            # reset env
             self.obs_player_one, self.info = self.env.reset()
-            self.sides_swapped = not self.sides_swapped
-            self.player_1_id, self.player_2_id = self.player_2_id, self.player_1_id
+            self.observations_this_round.append(self.obs_player_one)
+            # DISABLED: swap player side, swap player ids
+            # Did not seem to be implemented correctly, was it? The game swaps sides that start anyway.
+            # self.sides_swapped = not self.sides_swapped
+            # self.player_1_id, self.player_2_id = self.player_2_id, self.player_1_id
+
+            # decrease remaining rounds
             self.remaining_rounds = self.remaining_rounds - 1
 
             # check if it was the last round

@@ -124,7 +124,7 @@ class Parser:
         return False
 
     def _game(self, line: str) -> bool:
-        m = re.match(r"\s+(\S+) \((\S+), (\S+)\)", line)
+        m = re.match(r"\s+(\S+) \('(\S+)', '(\S+)'\)", line)
         if m:
             self.data["games"].append(
                 {"game": m.group(1), "player1": m.group(2), "player2": m.group(3)}
@@ -140,7 +140,7 @@ class Parser:
         return False
 
     def _player_in_queue(self, line: str) -> bool:
-        m = re.match(r"\s+(\S+) \[(\S+)\] since (\S+)", line)
+        m = re.match(r"\s+(\S+) \[(\S+)\] since (.+)", line)
         if m:
             self.data["players_in_queue"].append(
                 {"player": m.group(1), "uuid": m.group(2), "timestamp": m.group(3)}
@@ -180,6 +180,22 @@ def test() -> None:
     pprint(parser.data)
 
 
+def identify_lost_players(data: dict[str, Any]) -> list[tuple[str, str]]:
+    """Identify players who are connected but neither in a game nor in the queue."""
+    connected_players = set(player["uuid"] for player in data["connected_players"])
+    players_in_games = set(game["player1"] for game in data["games"]) | set(
+        game["player2"] for game in data["games"]
+    )
+    players_in_queue = set(player["uuid"] for player in data["players_in_queue"])
+    lost_players = connected_players - players_in_games - players_in_queue
+
+    return [
+        (player["player"], player["uuid"])
+        for player in data["connected_players"]
+        if player["uuid"] in lost_players
+    ]
+
+
 class ComprlMonitorApp(App):
     """Textual app for displaying the contents of a CompRL monitor file."""
 
@@ -202,14 +218,16 @@ class ComprlMonitorApp(App):
         """Compose the TUI layout."""
         yield Header()
         yield Label("Last Update:", id="timestamp", classes="h2")
-        yield Label("Connected Players:", classes="h2")
+        yield Label("Connected Players:", classes="h2", id="connected_players_label")
         yield DataTable(id="connected_players")
-        yield Label("Running Games:", classes="h2")
+        yield Label("Running Games:", classes="h2", id="games_label")
         yield DataTable(id="games")
-        yield Label("Players in Queue:", classes="h2")
+        yield Label("Players in Queue:", classes="h2", id="queue_label")
         yield DataTable(id="queue")
         yield Label("Match Quality Scores:", classes="h2")
         yield DataTable(id="match_quality_scores")
+        yield Label("Lost Players (connected but not in game or queue):", classes="h2")
+        yield DataTable(id="lost_players")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -230,6 +248,10 @@ class ComprlMonitorApp(App):
         timestamp: Label = self.query_one("#timestamp")
         timestamp.update(f"Last Update: {parser.data['timestamp']}")
 
+        player_label: Label = self.query_one("#connected_players_label")
+        player_label.update(
+            f"Connected Players ({parser.data['num_connected_players']}):"
+        )
         player_table: DataTable = self.query_one("#connected_players")
         player_table.clear(columns=True)
         player_table.add_columns("User", "Player ID")
@@ -240,6 +262,8 @@ class ComprlMonitorApp(App):
             ]
         )
 
+        games_label: Label = self.query_one("#games_label")
+        games_label.update(f"Running Games ({parser.data['num_games']}):")
         games_table: DataTable = self.query_one("#games")
         games_table.clear(columns=True)
         games_table.add_columns("Game", "Player 1", "Player 2")
@@ -250,6 +274,8 @@ class ComprlMonitorApp(App):
             ]
         )
 
+        queue_label: Label = self.query_one("#queue_label")
+        queue_label.update(f"Players in Queue ({parser.data['num_players_in_queue']}):")
         queue_table: DataTable = self.query_one("#queue")
         queue_table.clear(columns=True)
         queue_table.add_columns("User", "Player ID", "Timestamp")
@@ -273,6 +299,11 @@ class ComprlMonitorApp(App):
                 reverse=True,
             )
         )
+
+        lost_players_table: DataTable = self.query_one("#lost_players")
+        lost_players_table.clear(columns=True)
+        lost_players_table.add_columns("User", "Player ID")
+        lost_players_table.add_rows(identify_lost_players(parser.data))
 
         self.refresh()
 

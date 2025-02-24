@@ -140,7 +140,7 @@ class Parser:
         return False
 
     def _player_in_queue(self, line: str) -> bool:
-        m = re.match(r"\s+(\S+) \[(\S+)\] since (\S+)", line)
+        m = re.match(r"\s+(\S+) \[(\S+)\] since (.+)", line)
         if m:
             self.data["players_in_queue"].append(
                 {"player": m.group(1), "uuid": m.group(2), "timestamp": m.group(3)}

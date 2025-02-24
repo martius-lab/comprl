@@ -128,9 +128,14 @@ class UserDashboardState(ProtectedState):
         self.ranked_users = self._get_ranked_users()  # type: ignore
 
     @rx.var(cache=True)
-    def leaderboard_entries(self) -> Sequence[tuple[int, str, str]]:
+    def leaderboard_entries(self) -> Sequence[tuple[int, str, float, str]]:
         return [
-            (i + 1, user.username, f"{user.mu:.2f} / {user.sigma:.2f}")
+            (
+                i + 1,
+                user.username,
+                round(user.mu - user.sigma, 2),
+                f"{user.mu:.2f} / {user.sigma:.2f}",
+            )
             for i, user in enumerate(self.ranked_users)
         ]
 

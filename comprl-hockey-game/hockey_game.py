@@ -85,8 +85,8 @@ class HockeyGame(IGame):
 
         self.action = np.hstack(
             [
-                actions_dict[self.player_1_id],
-                actions_dict[self.player_2_id],
+                actions_dict[self.player_1_id][:4],
+                actions_dict[self.player_2_id][:4],
             ]
         )
         (

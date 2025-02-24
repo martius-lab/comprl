@@ -202,11 +202,11 @@ class ComprlMonitorApp(App):
         """Compose the TUI layout."""
         yield Header()
         yield Label("Last Update:", id="timestamp", classes="h2")
-        yield Label("Connected Players:", classes="h2")
+        yield Label("Connected Players:", classes="h2", id="connected_players_label")
         yield DataTable(id="connected_players")
-        yield Label("Running Games:", classes="h2")
+        yield Label("Running Games:", classes="h2", id="games_label")
         yield DataTable(id="games")
-        yield Label("Players in Queue:", classes="h2")
+        yield Label("Players in Queue:", classes="h2", id="queue_label")
         yield DataTable(id="queue")
         yield Label("Match Quality Scores:", classes="h2")
         yield DataTable(id="match_quality_scores")
@@ -230,6 +230,10 @@ class ComprlMonitorApp(App):
         timestamp: Label = self.query_one("#timestamp")
         timestamp.update(f"Last Update: {parser.data['timestamp']}")
 
+        player_label: Label = self.query_one("#connected_players_label")
+        player_label.update(
+            f"Connected Players ({parser.data['num_connected_players']}):"
+        )
         player_table: DataTable = self.query_one("#connected_players")
         player_table.clear(columns=True)
         player_table.add_columns("User", "Player ID")
@@ -240,6 +244,8 @@ class ComprlMonitorApp(App):
             ]
         )
 
+        games_label: Label = self.query_one("#games_label")
+        games_label.update(f"Running Games ({parser.data['num_games']}):")
         games_table: DataTable = self.query_one("#games")
         games_table.clear(columns=True)
         games_table.add_columns("Game", "Player 1", "Player 2")
@@ -250,6 +256,10 @@ class ComprlMonitorApp(App):
             ]
         )
 
+        queue_label: Label = self.query_one("#queue_label")
+        queue_label.update(
+            f"Players in Queue ({parser.data['num_players_in_queue']}):"
+        )
         queue_table: DataTable = self.query_one("#queue")
         queue_table.clear(columns=True)
         queue_table.add_columns("User", "Player ID", "Timestamp")

@@ -4,6 +4,7 @@
 import argparse
 import contextlib
 import logging
+import pathlib
 import sys
 
 import sqlalchemy as sa
@@ -18,7 +19,9 @@ def main() -> int:
     """Entry point."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "config", type=str, help="Config file that specifies the databases."
+        "config_or_database",
+        type=pathlib.Path,
+        help="Config file that specifies the database or path to the database itself.",
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose output."
@@ -31,8 +34,12 @@ def main() -> int:
         format="[%(asctime)s] [%(name)s | %(levelname)s] %(message)s",
     )
 
-    config = load_config(args.config)
-    engine = sa.create_engine(f"sqlite:///{config.database_path}")
+    if args.config_or_database.suffix.lower() == ".toml":
+        config = load_config(args.config)
+        database_path = config.database_path
+    else:
+        database_path = args.config_or_database
+    engine = sa.create_engine(f"sqlite:///{database_path}")
 
     fields = [
         "start_time",

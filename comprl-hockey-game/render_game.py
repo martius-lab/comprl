@@ -39,13 +39,15 @@ def playback(
 ) -> list[np.ndarray]:
     frames = []
     env.reset()
+    t_start = time.monotonic()
     for observation in observations:
         env.set_state(observation)
         img = np.array(render(env, game_info, players_swapped))
         frames.append(img)
         if show:
             cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            cv2.waitKey(rate_ms)
+            duration = max(1, int(rate_ms - (time.monotonic() - t_start) * 1000))
+            cv2.waitKey(duration)
 
     return frames
 
@@ -123,9 +125,7 @@ def get_game_info(database: pathlib.Path, game_id: int) -> GameInfo:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("game_file", type=pathlib.Path, help="Game file.")
-    parser.add_argument(
-        "--rate", type=float, default="0.01", help="Duration in seconds for one step."
-    )
+    parser.add_argument("--fps", type=float, default=35.0, help="Playback framerate.")
     parser.add_argument(
         "--database", type=pathlib.Path, help="Database to look up game info."
     )
@@ -134,6 +134,14 @@ def main() -> int:
         type=pathlib.Path,
         metavar="dest",
         help="Save as MP4 video to the specified path.",
+    )
+    parser.add_argument(
+        "--swap-players",
+        action="store_true",
+        help="""Swap players after each round.  This is only needed for old game files.
+        The current game implementation does not swap players anymore.
+        This flag only affects the display of player names and scores.
+        """,
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose output."
@@ -162,10 +170,10 @@ def main() -> int:
 
     env = HockeyEnv()
 
-    rate_ms = int(args.rate * 1000)
+    rate_ms = int(1 / args.fps * 1000)
     frames = []
     for i in range(num_rounds):
-        players_swapped = bool(i % 2)
+        players_swapped = args.swap_players and bool(i % 2)
         frames += playback(
             env,
             data[f"observations_round_{i}"],
@@ -178,7 +186,11 @@ def main() -> int:
 
     if args.save_video:
         video = imageio.get_writer(
-            args.save_video, fps=35, codec="mjpeg", quality=10, pixelformat="yuvj444p"
+            args.save_video,
+            fps=args.fps,
+            codec="mjpeg",
+            quality=10,
+            pixelformat="yuvj444p",
         )
         for frame in frames:
             video.append_data(frame)

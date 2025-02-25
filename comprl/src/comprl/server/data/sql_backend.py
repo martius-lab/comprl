@@ -5,6 +5,7 @@ Implementation of the data access objects for managing game and user data in SQL
 from __future__ import annotations
 
 import datetime
+import itertools
 import os
 from typing import Optional, Sequence
 
@@ -12,7 +13,7 @@ import bcrypt
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from comprl.server.data.interfaces import GameResult, UserRole
+from comprl.server.data.interfaces import GameEndState, GameResult, UserRole
 from comprl.server.config import get_config
 
 
@@ -109,6 +110,60 @@ class GameData:
         with sa.orm.Session(self.engine) as session:
             session.query(Game).delete()
             session.commit()
+
+
+def get_user_pair_statistics(
+    session: sa.orm.Session, user_ids: Sequence[int]
+) -> dict[tuple[int, int], dict[str, int]]:
+    """Get game statistics for all pairs of users.
+
+    Args:
+        session: The database session.
+        user_ids: The IDs of the users.
+
+    Returns:
+        Dictionary mapping pairs of user IDs (given as tuple ``(user_id1, user_id2)`` to
+        their game statistics (a dictionary with keys "wins", "losses" and "draws").
+    """
+    result = {}
+    for user_id1, user_id2 in itertools.combinations(user_ids, 2):
+        # base statement to count games between user 1 and 2.  Extended in the following
+        # by adding more filters to count wins, losses and draws.
+        base_stmt = (
+            sa.select(sa.func.count())
+            .select_from(Game)
+            .filter(
+                sa.and_(
+                    sa.or_(
+                        sa.and_(Game.user1 == user_id1, Game.user2 == user_id2),
+                        sa.and_(Game.user1 == user_id2, Game.user2 == user_id1),
+                    )
+                )
+            )
+        )
+        stmt_wins = base_stmt.filter(
+            sa.and_(Game.end_state == GameEndState.WIN, Game.winner == user_id1)
+        )
+        stmt_losses = base_stmt.filter(
+            sa.and_(Game.end_state == GameEndState.WIN, Game.winner != user_id1)
+        )
+        stmt_draws = base_stmt.filter(Game.end_state == GameEndState.DRAW)
+
+        stats = {
+            "wins": session.scalar(stmt_wins) or 0,
+            "losses": session.scalar(stmt_losses) or 0,
+            "draws": session.scalar(stmt_draws) or 0,
+        }
+        result[(user_id1, user_id2)] = stats
+
+        # add the reverse pair
+        result[(user_id2, user_id1)] = {
+            "wins": stats["losses"],
+            "losses": stats["wins"],
+            "draws": stats["draws"],
+        }
+
+    return result
 
 
 class UserData:

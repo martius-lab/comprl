@@ -15,11 +15,8 @@ from typing import NamedTuple, Sequence
 import cv2
 import imageio
 import numpy as np
-import sqlalchemy as sa
 from PIL import Image, ImageDraw, ImageFont
 from hockey.hockey_env import HockeyEnv  # type: ignore[import-untyped]
-
-from comprl.server.data.sql_backend import Game
 
 
 class GameInfo(NamedTuple):
@@ -107,28 +104,10 @@ def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.
     return img
 
 
-def get_game_info(database: pathlib.Path, game_id: int) -> GameInfo:
-    engine = sa.create_engine(f"sqlite:///{database}")
-    with sa.orm.Session(engine) as session:
-        stmt = sa.select(Game).where(Game.game_id == game_id)
-        game = session.scalar(stmt)
-
-        assert game is not None, f"Game {game_id} not found in database."
-        return GameInfo(
-            player1=game.user1_.username,
-            player2=game.user2_.username,
-            score1=int(game.score1),
-            score2=int(game.score2),
-        )
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("game_file", type=pathlib.Path, help="Game file.")
     parser.add_argument("--fps", type=float, default=35.0, help="Playback framerate.")
-    parser.add_argument(
-        "--database", type=pathlib.Path, help="Database to look up game info."
-    )
     parser.add_argument(
         "--save-video",
         type=pathlib.Path,
@@ -160,29 +139,40 @@ def main() -> int:
     with open(args.game_file, "rb") as f:
         data = pickle.load(f)
 
-    num_rounds = data["num_rounds"][0][0]
-
-    if args.database:
-        game_id = args.game_file.stem
-        game_info = get_game_info(args.database, game_id)
-    else:
-        game_info = GameInfo("Player 1", "Player 2", None, None)
-
     env = HockeyEnv()
 
     rate_ms = int(1 / args.fps * 1000)
     frames = []
-    for i in range(num_rounds):
+    game_info = GameInfo(data["user_names"][0], data["user_names"][1], 0, 0)
+    for i, round_ in enumerate(data["rounds"]):
         players_swapped = args.swap_players and bool(i % 2)
         frames += playback(
             env,
-            data[f"observations_round_{i}"],
+            round_["observations"],
             rate_ms,
             game_info,
             players_swapped,
             show=not args.save_video,
         )
         time.sleep(1)
+
+        # update game info for next round
+        game_info = GameInfo(
+            data["user_names"][0],
+            data["user_names"][1],
+            int(round_["score"][0]),
+            int(round_["score"][1]),
+        )
+
+    # show last frame with the final score
+    frames += playback(
+        env,
+        [round_["observations"][-1]] * int(args.fps * 2),
+        rate_ms,
+        game_info,
+        players_swapped,
+        show=not args.save_video,
+    )
 
     if args.save_video:
         video = imageio.get_writer(

@@ -42,6 +42,6 @@ There is also a script `select_top_player_games.py` to randomly select some game
 best users.  Together they may be used to generate videos of some top games:
 ```sh
 python select_top_player_games.py path/to/database.db > games.txt
-cat games.txt | parallel --csv python render_game.py path/to/game_actions/{3}.pkl --database path/to/database.db --save-video {1}_vs_{2}.mp4
+cat games.txt | parallel --csv python render_game.py path/to/game_actions/{3}.pkl --save-video {1}_vs_{2}.mp4
 ```
 (you may need to install `parallel` first)

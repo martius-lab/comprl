@@ -1,12 +1,24 @@
 from __future__ import annotations
 
-from typing import List
+import typing
+from dataclasses import asdict, dataclass, field
 
-import hockey.hockey_env as h_env
+import hockey.hockey_env as h_env  # type: ignore[import-untyped]
 import numpy as np
 
 from comprl.server.interfaces import IGame, IPlayer
-from comprl.shared.types import PlayerID
+
+if typing.TYPE_CHECKING:
+    from comprl.shared.types import PlayerID
+
+
+@dataclass
+class RoundData:
+    """data class to store the data of a round"""
+
+    actions: list[np.ndarray] = field(default_factory=list)
+    observations: list[np.ndarray] = field(default_factory=list)
+    rewards: list[float] = field(default_factory=list)
 
 
 class HockeyGame(IGame):
@@ -37,23 +49,13 @@ class HockeyGame(IGame):
         self.terminated = False
         self.truncated = False
 
-        # array storing all actions/observations of a round to be saved later.
-        self.actions_this_round: list[np.ndarray] = []
-        self.observations_this_round: list[np.ndarray] = []
-        self.rewards_this_round: list[float] = []
+        # array storing all actions/observations/... of a round to be saved later.
+        self.round_data = RoundData()
 
-        # self.game_info also contains:
-        # - num_rounds: number of rounds played
-        # - actions_round_0: actions of the first round
-        # - actions_round_1: actions of the second round
-        # - ...
-        # - actions_round_(num_rounds-1): actions of the last round
-        # - observations_round_0: observations of the first round
-        # - ...
-
+        # add some useful metadata to the game log
         self.game_info["user_ids"] = [players[0].user_id, players[1].user_id]
         self.game_info["user_names"] = [players[0].username, players[1].username]
-        self.game_info["num_rounds"] = self.num_rounds
+        self.game_info["rounds"] = []
 
         super().__init__(players)
 
@@ -101,9 +103,9 @@ class HockeyGame(IGame):
         ) = self.env.step(self.action)
 
         # store the actions and observations
-        self.actions_this_round.append(self.action)
-        self.observations_this_round.append(self.obs_player_one)
-        self.rewards_this_round.append(self.reward)
+        self.round_data.actions.append(self.action)
+        self.round_data.observations.append(self.obs_player_one)
+        self.round_data.rewards.append(self.reward)
 
         # check if current round has ended
         if self.terminated or self.truncated:
@@ -114,23 +116,21 @@ class HockeyGame(IGame):
             if self.winner == -1:
                 self.scores[self.player_2_id] += 1
 
-            # store the actions and observations of the round
-            round_number = self.num_rounds - self.remaining_rounds
-            self.game_info[f"actions_round_{round_number}"] = self.actions_this_round
-            self.game_info[f"observations_round_{round_number}"] = (
-                self.observations_this_round
-            )
-            self.game_info[f"rewards_round_{round_number}"] = self.rewards_this_round
-            self.game_info[f"scores_round_{round_number}"] = (
-                self.scores[self.player_1_id],
-                self.scores[self.player_2_id],
+            # store the data of this round
+            self.game_info["rounds"].append(
+                asdict(self.round_data)
+                | {
+                    "score": (
+                        self.scores[self.player_1_id],
+                        self.scores[self.player_2_id],
+                    )
+                }
             )
 
             # reset env
+            self.round_data = RoundData()
             self.obs_player_one, self.info = self.env.reset()
-            self.rewards_this_round = []
-            self.actions_this_round = []
-            self.observations_this_round = [self.obs_player_one]
+            self.round_data.observations.append(self.obs_player_one)
 
             # DISABLED: swap player side, swap player ids
             # Did not seem to be implemented correctly, was it? The game swaps sides that start anyway.

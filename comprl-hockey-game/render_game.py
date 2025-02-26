@@ -32,7 +32,6 @@ def playback_round(
     observations: Sequence[np.ndarray],
     fps: float,
     game_info: GameInfo,
-    players_swapped: bool,
     show: bool,
 ) -> list[np.ndarray]:
     frames = []
@@ -42,9 +41,7 @@ def playback_round(
     # Show the first frame with annotation of the round for a second
     first_obs = observations[0]
     env.set_state(first_obs)
-    img = np.array(
-        render(env, game_info, players_swapped, center_text=f"Round {game_info.round}")
-    )
+    img = np.array(render(env, game_info, center_text=f"Round {game_info.round}"))
     for _ in range(int(fps)):
         frames.append(img)
         if show:
@@ -54,7 +51,7 @@ def playback_round(
     t_start = time.monotonic()
     for observation in observations:
         env.set_state(observation)
-        img = np.array(render(env, game_info, players_swapped))
+        img = np.array(render(env, game_info))
         frames.append(img)
         if show:
             cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -69,7 +66,6 @@ def playback_final_result(
     final_observation: np.ndarray,
     fps: float,
     game_info: GameInfo,
-    players_swapped: bool,
     show: bool,
 ) -> list[np.ndarray]:
     frames = []
@@ -84,7 +80,7 @@ def playback_final_result(
         result = f"{game_info.player2} wins"
 
     env.set_state(final_observation)
-    img = np.array(render(env, game_info, players_swapped, center_text=result))
+    img = np.array(render(env, game_info, center_text=result))
     for _ in range(int(fps * 2)):
         frames.append(img)
         if show:
@@ -97,7 +93,6 @@ def playback_final_result(
 def render(
     env: HockeyEnv,
     game_info: GameInfo,
-    players_swapped: bool,
     center_text: str | None = None,
 ) -> Image.Image:
     red = (235, 98, 53)
@@ -110,16 +105,10 @@ def render(
     font_file = pathlib.Path(__file__).parent / "f2-tecnocratica-ffp.ttf"
     font = ImageFont.truetype(font_file, 24)
 
-    if players_swapped:
-        player_left = game_info.player2
-        player_right = game_info.player1
-        score_left = game_info.score2
-        score_right = game_info.score1
-    else:
-        player_left = game_info.player1
-        player_right = game_info.player2
-        score_left = game_info.score1
-        score_right = game_info.score2
+    player_left = game_info.player1
+    player_right = game_info.player2
+    score_left = game_info.score1
+    score_right = game_info.score2
 
     text_offset = 15
     draw.rectangle((0, 0, img.width, 28), fill=(100, 100, 100))
@@ -175,14 +164,6 @@ def main() -> int:
         help="Save as MP4 video to the specified path.",
     )
     parser.add_argument(
-        "--swap-players",
-        action="store_true",
-        help="""Swap players after each round.  This is only needed for old game files.
-        The current game implementation does not swap players anymore.
-        This flag only affects the display of player names and scores.
-        """,
-    )
-    parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose output."
     )
     args = parser.parse_args()
@@ -204,13 +185,11 @@ def main() -> int:
     frames = []
     game_info = GameInfo(1, data["user_names"][0], data["user_names"][1], 0, 0)
     for i, round_ in enumerate(data["rounds"]):
-        players_swapped = args.swap_players and bool(i % 2)
         frames += playback_round(
             env,
             round_["observations"],
             args.fps,
             game_info,
-            players_swapped,
             show=not args.save_video,
         )
         time.sleep(1)
@@ -230,7 +209,6 @@ def main() -> int:
         round_["observations"][-1],
         args.fps,
         game_info,
-        players_swapped,
         show=not args.save_video,
     )
 

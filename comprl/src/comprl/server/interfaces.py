@@ -3,7 +3,7 @@ This module contains the interfaces for the non-networking logic.
 """
 
 import abc
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 from datetime import datetime
 import numpy as np
 import pickle
@@ -118,7 +118,9 @@ class IGame(abc.ABC):
         self.disconnected_player_id: PlayerID | None = None
         # dict storing all actions and possible more to be saved later.
         # "actions" is a list of all actions in the game
-        self.game_info: dict[str, list[np.ndarray]] = {}
+        self.game_info: dict[str, Any] = {}
+        # TODO remove the all_actions here and leave the data logging completely to the
+        # game implementation?
         self.all_actions: list[np.ndarray] = []
         # When writing a game class you can fill the dict game_info with more
         # information

@@ -15,34 +15,43 @@ from typing import NamedTuple, Sequence
 import cv2
 import imageio
 import numpy as np
-import sqlalchemy as sa
 from PIL import Image, ImageDraw, ImageFont
 from hockey.hockey_env import HockeyEnv  # type: ignore[import-untyped]
 
-from comprl.server.data.sql_backend import Game
-
 
 class GameInfo(NamedTuple):
+    round: int
     player1: str
     player2: str
-    score1: int | None
-    score2: int | None
+    score1: int
+    score2: int
 
 
-def playback(
+def playback_round(
     env: HockeyEnv,
     observations: Sequence[np.ndarray],
-    rate_ms: int,
+    fps: float,
     game_info: GameInfo,
-    players_swapped: bool,
     show: bool,
 ) -> list[np.ndarray]:
     frames = []
+    rate_ms = int(1 / fps * 1000)
     env.reset()
+
+    # Show the first frame with annotation of the round for a second
+    first_obs = observations[0]
+    env.set_state(first_obs)
+    img = np.array(render(env, game_info, center_text=f"Round {game_info.round}"))
+    for _ in range(int(fps)):
+        frames.append(img)
+        if show:
+            cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(rate_ms)
+
     t_start = time.monotonic()
     for observation in observations:
         env.set_state(observation)
-        img = np.array(render(env, game_info, players_swapped))
+        img = np.array(render(env, game_info))
         frames.append(img)
         if show:
             cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
@@ -52,7 +61,40 @@ def playback(
     return frames
 
 
-def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.Image:
+def playback_final_result(
+    env: HockeyEnv,
+    final_observation: np.ndarray,
+    fps: float,
+    game_info: GameInfo,
+    show: bool,
+) -> list[np.ndarray]:
+    frames = []
+    rate_ms = int(1 / fps * 1000)
+    env.reset()
+
+    if game_info.score1 == game_info.score2:
+        result = "Draw"
+    elif game_info.score1 > game_info.score2:
+        result = f"{game_info.player1} wins"
+    else:
+        result = f"{game_info.player2} wins"
+
+    env.set_state(final_observation)
+    img = np.array(render(env, game_info, center_text=result))
+    for _ in range(int(fps * 2)):
+        frames.append(img)
+        if show:
+            cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(rate_ms)
+
+    return frames
+
+
+def render(
+    env: HockeyEnv,
+    game_info: GameInfo,
+    center_text: str | None = None,
+) -> Image.Image:
     red = (235, 98, 53)
     blue = (93, 158, 199)
 
@@ -63,16 +105,10 @@ def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.
     font_file = pathlib.Path(__file__).parent / "f2-tecnocratica-ffp.ttf"
     font = ImageFont.truetype(font_file, 24)
 
-    if players_swapped:
-        player_left = game_info.player2
-        player_right = game_info.player1
-        score_left = game_info.score2
-        score_right = game_info.score1
-    else:
-        player_left = game_info.player1
-        player_right = game_info.player2
-        score_left = game_info.score1
-        score_right = game_info.score2
+    player_left = game_info.player1
+    player_right = game_info.player2
+    score_left = game_info.score1
+    score_right = game_info.score2
 
     text_offset = 15
     draw.rectangle((0, 0, img.width, 28), fill=(100, 100, 100))
@@ -104,22 +140,17 @@ def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.
             anchor="la",
         )
 
-    return img
-
-
-def get_game_info(database: pathlib.Path, game_id: int) -> GameInfo:
-    engine = sa.create_engine(f"sqlite:///{database}")
-    with sa.orm.Session(engine) as session:
-        stmt = sa.select(Game).where(Game.game_id == game_id)
-        game = session.scalar(stmt)
-
-        assert game is not None, f"Game {game_id} not found in database."
-        return GameInfo(
-            player1=game.user1_.username,
-            player2=game.user2_.username,
-            score1=int(game.score1),
-            score2=int(game.score2),
+    if center_text:
+        font = ImageFont.truetype(font_file, 50)
+        draw.text(
+            (img.width / 2, img.height / 2),
+            center_text,
+            (19, 19, 19),
+            font=font,
+            anchor="mm",
         )
+
+    return img
 
 
 def main() -> int:
@@ -127,21 +158,10 @@ def main() -> int:
     parser.add_argument("game_file", type=pathlib.Path, help="Game file.")
     parser.add_argument("--fps", type=float, default=35.0, help="Playback framerate.")
     parser.add_argument(
-        "--database", type=pathlib.Path, help="Database to look up game info."
-    )
-    parser.add_argument(
         "--save-video",
         type=pathlib.Path,
         metavar="dest",
         help="Save as MP4 video to the specified path.",
-    )
-    parser.add_argument(
-        "--swap-players",
-        action="store_true",
-        help="""Swap players after each round.  This is only needed for old game files.
-        The current game implementation does not swap players anymore.
-        This flag only affects the display of player names and scores.
-        """,
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose output."
@@ -160,29 +180,37 @@ def main() -> int:
     with open(args.game_file, "rb") as f:
         data = pickle.load(f)
 
-    num_rounds = data["num_rounds"][0][0]
-
-    if args.database:
-        game_id = args.game_file.stem
-        game_info = get_game_info(args.database, game_id)
-    else:
-        game_info = GameInfo("Player 1", "Player 2", None, None)
-
     env = HockeyEnv()
 
-    rate_ms = int(1 / args.fps * 1000)
     frames = []
-    for i in range(num_rounds):
-        players_swapped = args.swap_players and bool(i % 2)
-        frames += playback(
+    game_info = GameInfo(1, data["user_names"][0], data["user_names"][1], 0, 0)
+    for i, round_ in enumerate(data["rounds"]):
+        frames += playback_round(
             env,
-            data[f"observations_round_{i}"],
-            rate_ms,
+            round_["observations"],
+            args.fps,
             game_info,
-            players_swapped,
             show=not args.save_video,
         )
         time.sleep(1)
+
+        # update game info for next round
+        game_info = GameInfo(
+            i + 2,
+            data["user_names"][0],
+            data["user_names"][1],
+            int(round_["score"][0]),
+            int(round_["score"][1]),
+        )
+
+    # show last frame with the final score
+    frames += playback_final_result(
+        env,
+        round_["observations"][-1],
+        args.fps,
+        game_info,
+        show=not args.save_video,
+    )
 
     if args.save_video:
         video = imageio.get_writer(

@@ -10,6 +10,7 @@ import inspect
 import logging
 import os
 import pathlib
+import sys
 import time
 from typing import Type, TYPE_CHECKING
 
@@ -156,6 +157,7 @@ def load_class(module_path: str, class_name: str):
 
     # create the module
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
 
     # this is for mypy
     if not isinstance(spec.loader, importlib.abc.Loader):

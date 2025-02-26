@@ -1,9 +1,24 @@
-from comprl.server.interfaces import IGame, IPlayer
-from comprl.shared.types import PlayerID
+from __future__ import annotations
 
-import hockey.hockey_env as h_env
+import typing
+from dataclasses import asdict, dataclass, field
+
+import hockey.hockey_env as h_env  # type: ignore[import-untyped]
 import numpy as np
-from typing import List
+
+from comprl.server.interfaces import IGame, IPlayer
+
+if typing.TYPE_CHECKING:
+    from comprl.shared.types import PlayerID
+
+
+@dataclass
+class RoundData:
+    """data class to store the data of a round"""
+
+    actions: list[np.ndarray] = field(default_factory=list)
+    observations: list[np.ndarray] = field(default_factory=list)
+    rewards: list[float] = field(default_factory=list)
 
 
 class HockeyGame(IGame):
@@ -16,7 +31,6 @@ class HockeyGame(IGame):
             players (list[IPlayer]): list of players participating in this game.
                                       Handled by the abstract class
         """
-
         self.env = h_env.HockeyEnv()
         self.player_1_id = players[0].id
         self.player_2_id = players[1].id
@@ -30,26 +44,15 @@ class HockeyGame(IGame):
         # Bool if all rounds are finished
         self.finished = False
 
-        # initialize terminated and truncated, so the game hasn't ended by default.
-        self.terminated = False
-        self.truncated = False
-
-        # array storing all actions/observations of a round to be saved later.
-        # contains tuples consisting of the actions of the players
-        # (in the order of the player dictionary)
-        self.actions_this_round: List[np.ndarray] = []
-        self.observations_this_round: List[np.ndarray] = []
-
-        # self.game_info also contains:
-        # - num_rounds: number of rounds played
-        # - actions_round_0: actions of the first round
-        # - actions_round_1: actions of the second round
-        # - ...
-        # - actions_round_(num_rounds-1): actions of the last round
-        # - observations_round_0: observations of the first round
-        # - ...
+        # array storing all actions/observations/... of a round to be saved later.
+        self.round_data = RoundData()
 
         super().__init__(players)
+
+        # add some useful metadata to the game log
+        self.game_info["user_ids"] = [players[0].user_id, players[1].user_id]
+        self.game_info["user_names"] = [players[0].username, players[1].username]
+        self.game_info["rounds"] = []
 
     def start(self):
         """
@@ -57,8 +60,8 @@ class HockeyGame(IGame):
         and starts the game cycle
         """
 
-        self.obs_player_one, self.info = self.env.reset()
-        self.observations_this_round.append(self.obs_player_one)
+        self.obs_player_one, _ = self.env.reset()
+        self.round_data.observations.append(self.obs_player_one)
         return super().start()
 
     def _end(self, reason="unknown"):
@@ -69,10 +72,6 @@ class HockeyGame(IGame):
                                     Defaults to "unknown"
         """
         self.env.close()
-        # add useful information to the game_info
-        self.game_info["num_rounds"] = [
-            np.array([self.num_rounds])
-        ]  # to respect type of dict
         return super()._end(reason)
 
     def _update(self, actions_dict: dict[PlayerID, list[float]]) -> bool:
@@ -83,63 +82,67 @@ class HockeyGame(IGame):
         """
         # self.env.render(mode="human")  # (un)comment to render or not
 
-        self.action = np.hstack(
+        combined_action = np.hstack(
             [
                 actions_dict[self.player_1_id][:4],
                 actions_dict[self.player_2_id][:4],
             ]
         )
+        # TODO: do these variables actually need to be class variables?
         (
             self.obs_player_one,
-            self.reward,
-            self.terminated,
-            self.truncated,
-            self.info,
-        ) = self.env.step(self.action)
+            reward,
+            terminated,
+            truncated,
+            info,
+        ) = self.env.step(combined_action)
 
         # store the actions and observations
-        self.actions_this_round.append(self.action)
-        self.observations_this_round.append(self.obs_player_one)
+        self.round_data.actions.append(combined_action)
+        self.round_data.observations.append(self.obs_player_one)
+        self.round_data.rewards.append(reward)
 
         # check if current round has ended
-        if self.terminated or self.truncated:
+        if terminated or truncated:
             # update score
-            self.winner = self.info["winner"]
-            if self.winner == 1:
+            if info["winner"] == 1:
                 self.scores[self.player_1_id] += 1
-            if self.winner == -1:
+            if info["winner"] == -1:
                 self.scores[self.player_2_id] += 1
 
-            # store the actions and observations of the round
-            self.game_info[
-                "actions_round_" + str(self.num_rounds - self.remaining_rounds)
-            ] = self.actions_this_round
-            self.actions_this_round = []
-            self.game_info[
-                "observations_round_" + str(self.num_rounds - self.remaining_rounds)
-            ] = self.observations_this_round
-            self.observations_this_round = []
+            # store the data of this round
+            self.game_info["rounds"].append(
+                asdict(self.round_data)
+                | {
+                    "score": (
+                        self.scores[self.player_1_id],
+                        self.scores[self.player_2_id],
+                    )
+                }
+            )
 
             # reset env
-            self.obs_player_one, self.info = self.env.reset()
-            self.observations_this_round.append(self.obs_player_one)
+            self.round_data = RoundData()
+            self.obs_player_one, info = self.env.reset()
+            self.round_data.observations.append(self.obs_player_one)
+
             # DISABLED: swap player side, swap player ids
             # Did not seem to be implemented correctly, was it? The game swaps sides that start anyway.
             # self.sides_swapped = not self.sides_swapped
             # self.player_1_id, self.player_2_id = self.player_2_id, self.player_1_id
 
             # decrease remaining rounds
-            self.remaining_rounds = self.remaining_rounds - 1
+            self.remaining_rounds -= 1
 
             # check if it was the last round
-            if self.remaining_rounds == 0:
+            if self.remaining_rounds <= 0:
                 self.finished = True
 
         return self.finished
 
     def _validate_action(self, action) -> bool:
         """check if the action is in the action space of the env"""
-        # can't use self.env.action_space.contains as tis is a action of one player
+        # can't use self.env.action_space.contains as this is a action of one player
         # and the action space is for both players. So I basically copied the code from
         # the contains() function.
         action = np.array(action)

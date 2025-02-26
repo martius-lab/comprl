@@ -20,22 +20,37 @@ from hockey.hockey_env import HockeyEnv  # type: ignore[import-untyped]
 
 
 class GameInfo(NamedTuple):
+    round: int
     player1: str
     player2: str
-    score1: int | None
-    score2: int | None
+    score1: int
+    score2: int
 
 
-def playback(
+def playback_round(
     env: HockeyEnv,
     observations: Sequence[np.ndarray],
-    rate_ms: int,
+    fps: float,
     game_info: GameInfo,
     players_swapped: bool,
     show: bool,
 ) -> list[np.ndarray]:
     frames = []
+    rate_ms = int(1 / fps * 1000)
     env.reset()
+
+    # Show the first frame with annotation of the round for a second
+    first_obs = observations[0]
+    env.set_state(first_obs)
+    img = np.array(
+        render(env, game_info, players_swapped, center_text=f"Round {game_info.round}")
+    )
+    for _ in range(int(fps)):
+        frames.append(img)
+        if show:
+            cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(rate_ms)
+
     t_start = time.monotonic()
     for observation in observations:
         env.set_state(observation)
@@ -49,7 +64,42 @@ def playback(
     return frames
 
 
-def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.Image:
+def playback_final_result(
+    env: HockeyEnv,
+    final_observation: np.ndarray,
+    fps: float,
+    game_info: GameInfo,
+    players_swapped: bool,
+    show: bool,
+) -> list[np.ndarray]:
+    frames = []
+    rate_ms = int(1 / fps * 1000)
+    env.reset()
+
+    if game_info.score1 == game_info.score2:
+        result = "Draw"
+    elif game_info.score1 > game_info.score2:
+        result = f"{game_info.player1} wins"
+    else:
+        result = f"{game_info.player2} wins"
+
+    env.set_state(final_observation)
+    img = np.array(render(env, game_info, players_swapped, center_text=result))
+    for _ in range(int(fps * 2)):
+        frames.append(img)
+        if show:
+            cv2.imshow("Game", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+            cv2.waitKey(rate_ms)
+
+    return frames
+
+
+def render(
+    env: HockeyEnv,
+    game_info: GameInfo,
+    players_swapped: bool,
+    center_text: str | None = None,
+) -> Image.Image:
     red = (235, 98, 53)
     blue = (93, 158, 199)
 
@@ -101,6 +151,16 @@ def render(env: HockeyEnv, game_info: GameInfo, players_swapped: bool) -> Image.
             anchor="la",
         )
 
+    if center_text:
+        font = ImageFont.truetype(font_file, 50)
+        draw.text(
+            (img.width / 2, img.height / 2),
+            center_text,
+            (19, 19, 19),
+            font=font,
+            anchor="mm",
+        )
+
     return img
 
 
@@ -141,15 +201,14 @@ def main() -> int:
 
     env = HockeyEnv()
 
-    rate_ms = int(1 / args.fps * 1000)
     frames = []
-    game_info = GameInfo(data["user_names"][0], data["user_names"][1], 0, 0)
+    game_info = GameInfo(1, data["user_names"][0], data["user_names"][1], 0, 0)
     for i, round_ in enumerate(data["rounds"]):
         players_swapped = args.swap_players and bool(i % 2)
-        frames += playback(
+        frames += playback_round(
             env,
             round_["observations"],
-            rate_ms,
+            args.fps,
             game_info,
             players_swapped,
             show=not args.save_video,
@@ -158,6 +217,7 @@ def main() -> int:
 
         # update game info for next round
         game_info = GameInfo(
+            i + 2,
             data["user_names"][0],
             data["user_names"][1],
             int(round_["score"][0]),
@@ -165,10 +225,10 @@ def main() -> int:
         )
 
     # show last frame with the final score
-    frames += playback(
+    frames += playback_final_result(
         env,
-        [round_["observations"][-1]] * int(args.fps * 2),
-        rate_ms,
+        round_["observations"][-1],
+        args.fps,
         game_info,
         players_swapped,
         show=not args.save_video,

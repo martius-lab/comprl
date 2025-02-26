@@ -1,9 +1,12 @@
-from comprl.server.interfaces import IGame, IPlayer
-from comprl.shared.types import PlayerID
+from __future__ import annotations
+
+from typing import List
 
 import hockey.hockey_env as h_env
 import numpy as np
-from typing import List
+
+from comprl.server.interfaces import IGame, IPlayer
+from comprl.shared.types import PlayerID
 
 
 class HockeyGame(IGame):
@@ -35,10 +38,9 @@ class HockeyGame(IGame):
         self.truncated = False
 
         # array storing all actions/observations of a round to be saved later.
-        # contains tuples consisting of the actions of the players
-        # (in the order of the player dictionary)
-        self.actions_this_round: List[np.ndarray] = []
-        self.observations_this_round: List[np.ndarray] = []
+        self.actions_this_round: list[np.ndarray] = []
+        self.observations_this_round: list[np.ndarray] = []
+        self.rewards_this_round: list[float] = []
 
         # self.game_info also contains:
         # - num_rounds: number of rounds played
@@ -48,6 +50,10 @@ class HockeyGame(IGame):
         # - actions_round_(num_rounds-1): actions of the last round
         # - observations_round_0: observations of the first round
         # - ...
+
+        self.game_info["user_ids"] = [players[0].user_id, players[1].user_id]
+        self.game_info["user_names"] = [players[0].username, players[1].username]
+        self.game_info["num_rounds"] = self.num_rounds
 
         super().__init__(players)
 
@@ -69,10 +75,6 @@ class HockeyGame(IGame):
                                     Defaults to "unknown"
         """
         self.env.close()
-        # add useful information to the game_info
-        self.game_info["num_rounds"] = [
-            np.array([self.num_rounds])
-        ]  # to respect type of dict
         return super()._end(reason)
 
     def _update(self, actions_dict: dict[PlayerID, list[float]]) -> bool:
@@ -89,6 +91,7 @@ class HockeyGame(IGame):
                 actions_dict[self.player_2_id][:4],
             ]
         )
+        # TODO: do these variables actually need to be class variables?
         (
             self.obs_player_one,
             self.reward,
@@ -100,6 +103,7 @@ class HockeyGame(IGame):
         # store the actions and observations
         self.actions_this_round.append(self.action)
         self.observations_this_round.append(self.obs_player_one)
+        self.rewards_this_round.append(self.reward)
 
         # check if current round has ended
         if self.terminated or self.truncated:
@@ -111,18 +115,23 @@ class HockeyGame(IGame):
                 self.scores[self.player_2_id] += 1
 
             # store the actions and observations of the round
-            self.game_info[
-                "actions_round_" + str(self.num_rounds - self.remaining_rounds)
-            ] = self.actions_this_round
-            self.actions_this_round = []
-            self.game_info[
-                "observations_round_" + str(self.num_rounds - self.remaining_rounds)
-            ] = self.observations_this_round
-            self.observations_this_round = []
+            round_number = self.num_rounds - self.remaining_rounds
+            self.game_info[f"actions_round_{round_number}"] = self.actions_this_round
+            self.game_info[f"observations_round_{round_number}"] = (
+                self.observations_this_round
+            )
+            self.game_info[f"rewards_round_{round_number}"] = self.rewards_this_round
+            self.game_info[f"scores_round_{round_number}"] = (
+                self.scores[self.player_1_id],
+                self.scores[self.player_2_id],
+            )
 
             # reset env
             self.obs_player_one, self.info = self.env.reset()
-            self.observations_this_round.append(self.obs_player_one)
+            self.rewards_this_round = []
+            self.actions_this_round = []
+            self.observations_this_round = [self.obs_player_one]
+
             # DISABLED: swap player side, swap player ids
             # Did not seem to be implemented correctly, was it? The game swaps sides that start anyway.
             # self.sides_swapped = not self.sides_swapped
@@ -139,7 +148,7 @@ class HockeyGame(IGame):
 
     def _validate_action(self, action) -> bool:
         """check if the action is in the action space of the env"""
-        # can't use self.env.action_space.contains as tis is a action of one player
+        # can't use self.env.action_space.contains as this is a action of one player
         # and the action space is for both players. So I basically copied the code from
         # the contains() function.
         action = np.array(action)

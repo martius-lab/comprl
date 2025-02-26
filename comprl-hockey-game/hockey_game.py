@@ -31,7 +31,6 @@ class HockeyGame(IGame):
             players (list[IPlayer]): list of players participating in this game.
                                       Handled by the abstract class
         """
-
         self.env = h_env.HockeyEnv()
         self.player_1_id = players[0].id
         self.player_2_id = players[1].id
@@ -48,12 +47,12 @@ class HockeyGame(IGame):
         # array storing all actions/observations/... of a round to be saved later.
         self.round_data = RoundData()
 
+        super().__init__(players)
+
         # add some useful metadata to the game log
         self.game_info["user_ids"] = [players[0].user_id, players[1].user_id]
         self.game_info["user_names"] = [players[0].username, players[1].username]
         self.game_info["rounds"] = []
-
-        super().__init__(players)
 
     def start(self):
         """
@@ -62,7 +61,7 @@ class HockeyGame(IGame):
         """
 
         self.obs_player_one, _ = self.env.reset()
-        self.observations_this_round.append(self.obs_player_one)
+        self.round_data.observations.append(self.obs_player_one)
         return super().start()
 
     def _end(self, reason="unknown"):

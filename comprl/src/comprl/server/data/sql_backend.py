@@ -127,33 +127,70 @@ def get_user_pair_statistics(
     """
     result = {}
     for user_id1, user_id2 in itertools.combinations(user_ids, 2):
+        if user_id1 == user_id2:
+            continue
+
         # base statement to count games between user 1 and 2.  Extended in the following
         # by adding more filters to count wins, losses and draws.
-        base_stmt = (
-            sa.select(sa.func.count())
+        stmt = (
+            sa.select(
+                sa.func.sum(
+                    sa.case(
+                        (
+                            sa.and_(
+                                Game.end_state == GameEndState.WIN,
+                                Game.winner == user_id1,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("wins"),
+                sa.func.sum(
+                    sa.case(
+                        (
+                            sa.and_(
+                                Game.end_state == GameEndState.WIN,
+                                Game.winner != user_id1,
+                            ),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("losses"),
+                sa.func.sum(
+                    sa.case(
+                        (
+                            Game.end_state == GameEndState.DRAW,
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("draws"),
+            )
             .select_from(Game)
             .filter(
-                sa.and_(
-                    sa.or_(
-                        sa.and_(Game.user1 == user_id1, Game.user2 == user_id2),
-                        sa.and_(Game.user1 == user_id2, Game.user2 == user_id1),
-                    )
+                sa.or_(
+                    sa.and_(Game.user1 == user_id1, Game.user2 == user_id2),
+                    sa.and_(Game.user1 == user_id2, Game.user2 == user_id1),
                 )
             )
         )
-        stmt_wins = base_stmt.filter(
-            sa.and_(Game.end_state == GameEndState.WIN, Game.winner == user_id1)
-        )
-        stmt_losses = base_stmt.filter(
-            sa.and_(Game.end_state == GameEndState.WIN, Game.winner != user_id1)
-        )
-        stmt_draws = base_stmt.filter(Game.end_state == GameEndState.DRAW)
 
-        stats = {
-            "wins": session.scalar(stmt_wins) or 0,
-            "losses": session.scalar(stmt_losses) or 0,
-            "draws": session.scalar(stmt_draws) or 0,
-        }
+        res = session.execute(stmt).first()
+        if res is None:
+            stats = {
+                "wins": 0,
+                "losses": 0,
+                "draws": 0,
+            }
+        else:
+            stats = {
+                "wins": res.wins or 0,
+                "losses": res.losses or 0,
+                "draws": res.draws or 0,
+            }
+
         result[(user_id1, user_id2)] = stats
 
         # add the reverse pair

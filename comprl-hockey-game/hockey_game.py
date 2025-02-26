@@ -45,10 +45,6 @@ class HockeyGame(IGame):
         # Bool if all rounds are finished
         self.finished = False
 
-        # initialize terminated and truncated, so the game hasn't ended by default.
-        self.terminated = False
-        self.truncated = False
-
         # array storing all actions/observations/... of a round to be saved later.
         self.round_data = RoundData()
 
@@ -65,7 +61,7 @@ class HockeyGame(IGame):
         and starts the game cycle
         """
 
-        self.obs_player_one, self.info = self.env.reset()
+        self.obs_player_one, _ = self.env.reset()
         self.observations_this_round.append(self.obs_player_one)
         return super().start()
 
@@ -87,7 +83,7 @@ class HockeyGame(IGame):
         """
         # self.env.render(mode="human")  # (un)comment to render or not
 
-        self.action = np.hstack(
+        combined_action = np.hstack(
             [
                 actions_dict[self.player_1_id][:4],
                 actions_dict[self.player_2_id][:4],
@@ -96,24 +92,23 @@ class HockeyGame(IGame):
         # TODO: do these variables actually need to be class variables?
         (
             self.obs_player_one,
-            self.reward,
-            self.terminated,
-            self.truncated,
-            self.info,
-        ) = self.env.step(self.action)
+            reward,
+            terminated,
+            truncated,
+            info,
+        ) = self.env.step(combined_action)
 
         # store the actions and observations
-        self.round_data.actions.append(self.action)
+        self.round_data.actions.append(combined_action)
         self.round_data.observations.append(self.obs_player_one)
-        self.round_data.rewards.append(self.reward)
+        self.round_data.rewards.append(reward)
 
         # check if current round has ended
-        if self.terminated or self.truncated:
+        if terminated or truncated:
             # update score
-            self.winner = self.info["winner"]
-            if self.winner == 1:
+            if info["winner"] == 1:
                 self.scores[self.player_1_id] += 1
-            if self.winner == -1:
+            if info["winner"] == -1:
                 self.scores[self.player_2_id] += 1
 
             # store the data of this round
@@ -129,7 +124,7 @@ class HockeyGame(IGame):
 
             # reset env
             self.round_data = RoundData()
-            self.obs_player_one, self.info = self.env.reset()
+            self.obs_player_one, info = self.env.reset()
             self.round_data.observations.append(self.obs_player_one)
 
             # DISABLED: swap player side, swap player ids
@@ -138,10 +133,10 @@ class HockeyGame(IGame):
             # self.player_1_id, self.player_2_id = self.player_2_id, self.player_1_id
 
             # decrease remaining rounds
-            self.remaining_rounds = self.remaining_rounds - 1
+            self.remaining_rounds -= 1
 
             # check if it was the last round
-            if self.remaining_rounds == 0:
+            if self.remaining_rounds <= 0:
                 self.finished = True
 
         return self.finished

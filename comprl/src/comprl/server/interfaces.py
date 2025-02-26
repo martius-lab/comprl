@@ -1,11 +1,8 @@
-"""
-This module contains the interfaces for the non-networking logic.
-"""
+"""This module contains the interfaces for the non-networking logic."""
 
 import abc
 from typing import Any, Callable, Optional
 from datetime import datetime
-import numpy as np
 import pickle
 import logging
 
@@ -116,14 +113,10 @@ class IGame(abc.ABC):
         self.scores: dict[PlayerID, float] = {p.id: 0.0 for p in players}
         self.start_time = datetime.now()
         self.disconnected_player_id: PlayerID | None = None
-        # dict storing all actions and possible more to be saved later.
-        # "actions" is a list of all actions in the game
+
+        # dict for storing game data (e.g. actions, observations, ...).  It is up to the
+        # actual game implementation to file this dict with the relevant data.
         self.game_info: dict[str, Any] = {}
-        # TODO remove the all_actions here and leave the data logging completely to the
-        # game implementation?
-        self.all_actions: list[np.ndarray] = []
-        # When writing a game class you can fill the dict game_info with more
-        # information
 
     def add_finish_callback(self, callback: Callable[["IGame"], None]) -> None:
         """
@@ -157,7 +150,6 @@ class IGame(abc.ABC):
             try:
                 # TODO: maybe add multithreading here to ease the load on the main
                 # server thread as storing the actions can take a while
-                self.game_info["actions"] = np.array(self.all_actions)
 
                 data_dir = get_config().data_dir
                 # should already be checked during config loading but just to be sure
@@ -201,7 +193,6 @@ class IGame(abc.ABC):
                     # update the game, and if the game is over, end it
                     if self.disconnected_player_id is not None:
                         return
-                    self.all_actions.append([actions[p] for p in actions])
                     if not self._update(actions):
                         self._run()
                     else:

@@ -35,8 +35,12 @@ class Config:
     database_path: pathlib.Path = omegaconf.MISSING
     #: Path to the data directory (used to save data like game actions)
     data_dir: pathlib.Path = omegaconf.MISSING
+
+    #: Sigma value for the :class:`~comprl.server.managers.GaussLeaderboardRater`.
+    gauss_leaderboard_rater_sigma: float = 20.0
+
     #: Threshold for matching players
-    match_quality_threshold: float = 0.8
+    match_quality_threshold: float = 0.3
     #: Percentage of players always waiting in queue
     percentage_min_players_waiting: float = 0.1
     #: (Minutes waiting * percentage) added as a time bonus for waiting players

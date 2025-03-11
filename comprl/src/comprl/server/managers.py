@@ -415,10 +415,13 @@ class MatchmakingManager:
 
         # queue storing player info and time they joined the queue
         self._queue: list[QueueEntry] = []
-        # The model used for matchmaking
+        # The model used for ranking
         self.model = PlackettLuce()
+
         # self.match_quality_rater = OpenskillRater(self.model)
-        self.match_quality_rater = GaussLeaderboardRater(UserData())
+        self.match_quality_rater = GaussLeaderboardRater(
+            UserData(), sigma=config.gauss_leaderboard_rater_sigma
+        )
 
         self._match_quality_threshold = config.match_quality_threshold
         self._percentage_min_players_waiting = config.percentage_min_players_waiting

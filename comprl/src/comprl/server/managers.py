@@ -4,6 +4,7 @@ This module contains classes that manage game instances and players.
 
 from __future__ import annotations
 
+import abc
 import logging
 from datetime import datetime
 from openskill.models import PlackettLuce
@@ -314,6 +315,42 @@ class QueueEntry(NamedTuple):
         )
 
 
+class MatchQualityRater(abc.ABC):
+    """Base class for match quality raters."""
+
+    def update_model(self) -> None:  # noqa: B027
+        """Update the model used for matchmaking.
+
+        May be overridden by subclasses to update the model based on new data.
+        """
+        pass
+
+    @abc.abstractmethod
+    def rate(self, player1: QueueEntry, player2: QueueEntry) -> float:
+        """Rate match quality of the given two players."""
+        raise NotImplementedError()
+
+
+class OpenskillRater(MatchQualityRater):
+    """Match quality rater using the OpenSkill library."""
+
+    def __init__(self, model=None) -> None:
+        if model:
+            self.model = model
+        else:
+            self.model = PlackettLuce()
+
+    def rate(self, player1: QueueEntry, player2: QueueEntry) -> float:
+        """Rate match quality of the given two players."""
+        rating_p1 = self.model.create_rating(
+            [player1.user.mu, player1.user.sigma], "player1"
+        )
+        rating_p2 = self.model.create_rating(
+            [player2.user.mu, player2.user.sigma], "player2"
+        )
+        return self.model.predict_draw([[rating_p1], [rating_p2]])
+
+
 class MatchmakingManager:
     """handles matchmaking between players and starts the game"""
 
@@ -338,6 +375,7 @@ class MatchmakingManager:
         self._queue: list[QueueEntry] = []
         # The model used for matchmaking
         self.model = PlackettLuce()
+        self.match_quality_rater = OpenskillRater(self.model)
         self._match_quality_threshold = config.match_quality_threshold
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus
@@ -416,6 +454,7 @@ class MatchmakingManager:
     def update(self) -> None:
         """Try to match players in the queue and start games."""
         self._match_quality_scores = {}
+        self.match_quality_rater.update_model()
         self._search_for_matches()
 
     def _min_players_waiting(self) -> int:
@@ -560,18 +599,9 @@ class MatchmakingManager:
         waiting_bonus = max(
             0.0, (combined_waiting_time / 60 - 1) * self._percental_time_bonus
         )
-        # TODO play with this function. Maybe even use polynomial or exponential growth,
-        # depending on waiting time
 
-        rating_p1 = self.model.create_rating(
-            [player1.user.mu, player1.user.sigma], "player1"
-        )
-        rating_p2 = self.model.create_rating(
-            [player2.user.mu, player2.user.sigma], "player2"
-        )
-        draw_prob = self.model.predict_draw([[rating_p1], [rating_p2]])
-
-        match_quality = draw_prob + waiting_bonus
+        match_quality = self.match_quality_rater.rate(player1, player2)
+        match_quality = match_quality + waiting_bonus
 
         # log for debugging
         self._match_quality_scores[cache_key] = match_quality

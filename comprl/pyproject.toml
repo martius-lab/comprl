@@ -16,7 +16,7 @@ dependencies = [
     "twisted==24.11.0",
     "numpy",
     "tomli; python_version<'3.11'",
-    "openskill==5.1.0",
+    "openskill==6.0.2",
     "sqlalchemy",
     "bcrypt",
     "tabulate",

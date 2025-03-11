@@ -8,7 +8,7 @@ from typing import Sequence
 import reflex as rx
 import sqlalchemy as sa
 
-from comprl.server.data.sql_backend import Game, User
+from comprl.server.data.sql_backend import Game, User, get_ranked_users
 from comprl.server.data.interfaces import GameEndState
 
 from . import config, reflex_local_auth
@@ -83,11 +83,6 @@ class UserDashboardState(ProtectedState):
             )
         return stats
 
-    def _get_ranked_users(self) -> Sequence[User]:
-        with get_session() as session:
-            stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
-            return session.scalars(stmt).all()
-
     @rx.var(cache=False)
     def ranking_position(self) -> int:
         if not self.is_authenticated:
@@ -125,7 +120,8 @@ class UserDashboardState(ProtectedState):
 
     @rx.event
     def update_ranked_users(self) -> None:
-        self.ranked_users = self._get_ranked_users()  # type: ignore
+        with get_session() as session:
+            self.ranked_users = get_ranked_users(session)  # type: ignore
 
     @rx.var(cache=True)
     def leaderboard_entries(self) -> Sequence[tuple[int, str, float, str]]:

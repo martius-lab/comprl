@@ -112,6 +112,12 @@ class GameData:
             session.commit()
 
 
+def get_ranked_users(session: sa.orm.Session) -> Sequence[User]:
+    """Get all users ordered by their score (mu - sigma)."""
+    stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
+    return session.scalars(stmt).all()
+
+
 def get_user_pair_statistics(
     session: sa.orm.Session, user_ids: Sequence[int]
 ) -> dict[tuple[int, int], dict[str, int]]:
@@ -322,6 +328,11 @@ class UserData:
         with sa.orm.Session(self.engine) as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})
             session.commit()
+
+    def get_ranked_users(self) -> Sequence[User]:
+        """Get all users ordered by their score."""
+        with sa.orm.Session(self.engine) as session:
+            return get_ranked_users(session)
 
 
 def hash_password(secret: str) -> bytes:

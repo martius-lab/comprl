@@ -351,6 +351,48 @@ class OpenskillRater(MatchQualityRater):
         return self.model.predict_draw([[rating_p1], [rating_p2]])
 
 
+class GaussLeaderboardRater(MatchQualityRater):
+    """Rate match quality based on distance in the leaderboard.
+
+    The match quality is computed using a Gaussian function based on the distance of the
+    players in the leaderboard.
+    """
+
+    def __init__(
+        self, user_data: UserData, scale: float = 0.5, sigma: float = 20
+    ) -> None:
+        """
+        Args:
+            user_data (UserData): The user data object to get the user ranking.
+            scale (float): Scaling factor for the score.  The match quality will
+                correspond to this value if the leaderboard distance is zero.
+            sigma (float): The standard deviation of the Gaussian function.
+        """
+        self.user_data = user_data
+        self.scale = scale
+        self.sigma = sigma
+        self.update_model()
+
+    def update_model(self) -> None:
+        """Update the model with the current user ranking."""
+        self.ranked_users = [u.user_id for u in self.user_data.get_ranked_users()]
+
+        # clear cached positions
+        self.user_positions: dict[int, int] = {}
+
+    def _get_ranking_position(self, user_id: int) -> int:
+        if user_id not in self.user_positions:
+            self.user_positions[user_id] = self.ranked_users.index(user_id)
+        return self.user_positions[user_id]
+
+    def rate(self, player1: QueueEntry, player2: QueueEntry) -> float:
+        """Rate match quality of the given two players."""
+        pos1 = self._get_ranking_position(player1.user.user_id)
+        pos2 = self._get_ranking_position(player2.user.user_id)
+        signed_dist = pos1 - pos2
+        return np.exp(-(signed_dist**2) / (2 * self.sigma**2)) * self.scale
+
+
 class MatchmakingManager:
     """handles matchmaking between players and starts the game"""
 
@@ -375,7 +417,9 @@ class MatchmakingManager:
         self._queue: list[QueueEntry] = []
         # The model used for matchmaking
         self.model = PlackettLuce()
-        self.match_quality_rater = OpenskillRater(self.model)
+        # self.match_quality_rater = OpenskillRater(self.model)
+        self.match_quality_rater = GaussLeaderboardRater(UserData())
+
         self._match_quality_threshold = config.match_quality_threshold
         self._percentage_min_players_waiting = config.percentage_min_players_waiting
         self._percental_time_bonus = config.percental_time_bonus

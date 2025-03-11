@@ -500,7 +500,17 @@ class MatchmakingManager:
                     matched_player.player_id,
                     matched_quality,
                 )
-                self._start_game(player1, matched_player)
+
+                # There may be games where a player may have an advantage depending on
+                # if they are first or second in the list.  In such games the
+                # matchmaking may introduce a bias. For example, a player who doesn't
+                # easily get a good match ends up waiting in the queue longer and thus
+                # will more likely be the first player in a match.  To avoid this,
+                # randomize the order of players before starting the game.
+                if rng.choice([True, False]):
+                    self._start_game(player1, matched_player)
+                else:
+                    self._start_game(matched_player, player1)
             else:
                 # Only increment if no match was found.  If a match was found, the entry
                 # previously at i has been removed, so the next entry is now at i.

@@ -13,7 +13,7 @@ def leaderboard() -> rx.Component:
     return standard_layout(
         rx.data_table(
             data=UserDashboardState.leaderboard_entries,
-            columns=["Ranking", "Username", "Score (µ - Σ)", "µ / Σ"],
+            columns=["Ranking", "Username", "Score (µ - σ)", "µ / σ"],
             search=True,
             sort=False,
             pagination={"limit": 100},

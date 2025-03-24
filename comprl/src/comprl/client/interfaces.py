@@ -28,6 +28,10 @@ class IAgent(abc.ABC):
         """
         Returns if the agent is ready to play.
 
+        The default implementation always returns True.
+        May be overridden to implement some method of non-disruptive disconnection (e.g.
+        stop after 10 games).
+
         Returns:
             bool: True if the agent is ready to play, False otherwise.
         """
@@ -36,6 +40,8 @@ class IAgent(abc.ABC):
     def on_start_game(self, game_id: int) -> None:  # noqa: B027
         """
         Called when a new game starts.
+
+        The default implementation does nothing.  Override to implement custom behavior.
 
         Args:
             game_id (int): The ID of the new game.
@@ -59,9 +65,12 @@ class IAgent(abc.ABC):
         """
         Called when a game ends.
 
+        The default implementation does nothing.  Override to implement custom behavior.
+
         Args:
-            result: The result of the game.
-            stats: The statistics of the game.
+            result: The result of the game (True if won, False if lost or draw).
+            stats: The statistics of the game.  The meaning of the values depends on the
+                game implementation.
         """
         pass
 

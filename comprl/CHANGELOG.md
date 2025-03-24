@@ -23,19 +23,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Instead, derive a custom class from it, that implements the `get_step` method.
 - BREAKING: Relative paths in the config file are now resolved relative to the
   config file location instead of to the working directory.
-- Matchmaking now samples from all candidates with quality above the threshold instead
-  of using the first in the list.
+- Matchmaking now samples from all candidates with quality above the threshold
+  instead of using the first in the list.
 - Do not update player ratings for games with disconnect.
 - Add option to limit number of games run in parallel.
+- Matchmaking uses custom "Gauss-Leaderboard score" to determine match quality
+  instead of OpenSkill draw probability.
 
 ## Removed
 - The `Agent.event` decorator has been removed.  Instead of using it, create
   a custom class that is derived from `Agent`.
 
 ## Added
-- Script `list_games` to list all games from the database on the terminal.
+- Tool `comprl-games` to list all games from the database on the terminal.
 - Helper function `comprl.client.launch_client`, which should make it easier to launch
   a client in a unified way.
+- Tool `comprl-users` to manage user accounts.
+- Tool `comprl-monitor` to monitor the connected players and waiting queue.
+- Install entry point `comprl-server` to run the server (as shorter alternative
+  to `python -m ...`).
 
 
 ## [0.1.0]

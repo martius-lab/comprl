@@ -97,6 +97,7 @@ class IGame(abc.ABC):
             The start time of the game.
         finish_callbacks (list[Callable[["IGame"], None]]):
             A list of callbacks to be executed when the game ends.
+        scores (dict[PlayerID, float]): Scores of the players.
     """
 
     @abc.abstractmethod

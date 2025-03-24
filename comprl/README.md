@@ -46,10 +46,10 @@ configuration.
 
 ```sh
 #display all possible command line arguments
-python -m comprl.server --h
+comprl-server --h
 
 #run server by providing a config file
-python -m comprl.server --config="path/to/config.toml"
+comprl-server --config="path/to/config.toml"
 ```
 
 ### Client

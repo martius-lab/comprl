@@ -26,43 +26,52 @@ Start implementing the interface with
 
 and implement all the necessary methods listed below:
 
--  ``update(actions: dict[PlayerID, list[float]]) -> bool``
+- :meth:`~comprl.server.interfaces.IGame._update`
 
-   -  Updates the environment
-   -  Input: All the collected actions in a dictionary
-   -  Returns ``True`` if the game should end ``False`` otherwise
+  - Updates the environment
+  - Input: All the collected actions in a dictionary
+  - Returns ``True`` if the game should end ``False`` otherwise
 
--  ``_validate_action(action: list[float])``
+- :meth:`~comprl.server.interfaces.IGame._validate_action`
 
-   -  Returns ``True`` if the action is valid
-   -  Disconnects the player if the action is invalid which ends the
-      game
+  - Returns ``True`` if the action is valid
+  - Disconnects the player if the action is invalid which ends the game
 
--  ``_get_observation(id: PlayerID) -> list[float]``
+- :meth:`~comprl.server.interfaces.IGame._get_observation`
 
-   -  Returns the observation that should be sent to this player
-   -  Observations can be sent to each player individually (e.g. for
-      left and right players)
+  - Returns the observation that should be sent to this player
+  - Observations can be sent to each player individually (e.g. for left and right
+    players)
 
--  ``_player_won(id: PlayerID) -> bool``
+- :meth:`~comprl.server.interfaces.IGame._player_won`
 
-   -  Returns ``True`` if the player has won, ``False`` otherwise
-   -  Should return ``False`` for all players in case of a draw
+  - Returns ``True`` if the player has won, ``False`` otherwise
+  - Should return ``False`` for all players in case of a draw
 
--  ``_player_stats(id: PlayerID) -> list[float]``
+- :meth:`~comprl.server.interfaces.IGame._player_stats`
 
-   -  Is called at the end of the game
-   -  Can be used to communicate Statistics at the end of the game
-   -  e.g. scores, disconnects, rounds, …
+  - Is called at the end of the game
+  - Can be used to communicate Statistics at the end of the game
+  - e.g. scores, disconnects, rounds, …
 
 For the implementation of these methods the following instance variables
 can be helpful:
 
--  ``self.players: dict[PlayerID, Player]`` a dictionary with all
+-  :attr:`~comprl.server.interfaces.IGame.players`: a dictionary with all
    players of the game
 
--  ``self.scores: dict[PlayerID, float]`` a dictionary with all scores
+-  :attr:`~comprl.server.interfaces.IGame.scores`: a dictionary with all scores
    (defaults to all scores 0.0)
+
+
+Stored game actions
+===================
+
+The game implementation can store arbitrary information about the game in the dictionary
+:attr:`comprl.server.interfaces.IGame.game_info`.  This dictionary is automatically
+saved to a pickle file at the end of the game.  The file is written to
+``{data_dir}/game_actions/{game_id}.pkl`` (see
+:attr:`comprl.server.config.Config.data_dir`).
 
 
 Example: Hockey game
@@ -70,3 +79,15 @@ Example: Hockey game
 
 For a real-life example on how to implement a server for a specific game, see the
 implementation in ``comprl-hockey-game`` (in the comprl repository).
+
+
+
+API
+=== 
+
+.. autoclass:: comprl.server.interfaces.IGame
+   :members:
+   :private-members:
+
+.. autoclass:: comprl.server.interfaces.IPlayer
+   :members:

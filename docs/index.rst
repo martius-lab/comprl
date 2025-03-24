@@ -32,3 +32,11 @@ To host your own server with your game read :doc:`Getting-Started`.
 
    ./matchmaking.rst
    ./Project-Concepts.rst
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: References:
+
+   ./configuration.rst
+   ./admin_tools.rst

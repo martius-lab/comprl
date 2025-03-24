@@ -37,7 +37,7 @@ html_theme = "sphinx_immaterial"
 
 # Material theme options
 html_theme_options = {
-    # "site_url": "todo",
+    "site_url": "https://martius-lab.github.io/comprl/",
     "repo_url": "https://github.com/martius-lab/comprl",
     "palette": {"primary": "blue-grey", "accent": "orange"},
     "globaltoc_includehidden": False,

@@ -17,3 +17,6 @@ This repository contains:
 - `comprl-hockey-game`: Implementation of the hockey game.
 - `comprl-hockey-agent`: Example implementation of a client for the hockey game.
 - `docs`: Documentation.
+
+Documentation of the current main branch is hosted here:
+https://martius-lab.github.io/comprl/

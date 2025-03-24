@@ -24,7 +24,7 @@ extensions = [
 
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".venv"]
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True

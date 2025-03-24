@@ -40,13 +40,25 @@ class Agent(IAgent):
         networking.connect_agent(self, host, port)
 
     def on_error(self, msg: str):
-        """Called if an error occurred on the server side."""
+        """Called if an error occurred on the server side.
+
+        Prints the message to stdout.  May be overridden to implement custom error
+        handling.
+        """
         print(f"Error: {msg}")
 
     def on_message(self, msg: str):
-        """Called if a message is sent from the server."""
+        """Called if a message is sent from the server.
+
+        Prints the message to stdout.  May be overridden to implement custom message
+        handling.
+        """
         print(f"Info: {msg}")
 
     def on_disconnect(self):
-        """Called when the agent disconnects from the server."""
+        """Called when the agent disconnects from the server.
+
+        Prints an error message to stdout.  May be overridden to implement custom
+        disconnect handling.
+        """
         print("Error: Agent disconnected from the server.")

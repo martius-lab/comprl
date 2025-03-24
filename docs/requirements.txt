@@ -1,3 +1,8 @@
-../comprl
+# The path to comprl needs to be relative to the repo root, otherwise the GitHub action
+# for building/deploying the docs fails... (relative paths are relative to working
+# direcotry, not relative to the requirements.txt...)
+# So when using this file locally, you also need to call it from the repo's root
+# directory.
+./comprl
 sphinx
 sphinx-immaterial

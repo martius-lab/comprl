@@ -17,10 +17,10 @@ arguments to start the server with the desired configuration (for more see
 .. code:: sh
 
    #display all possible command line arguments
-   python -m comprl.server -h
+   comprl-server -h
 
    #run the server by providing a config file
-   python -m comprl.server --config="path/to/config.toml"
+   comprl-server --config="path/to/config.toml"
 
 
 Client
@@ -48,7 +48,7 @@ demonstrates the basics of a game and can be used for easy testing.
 .. code:: sh
 
    #run game by providing a config file
-   python -m comprl.server --config="examples/simple/config.toml"
+   comprl-server --config="examples/simple/config.toml"
 
    #run agent
    python -m examples.simple.agent
@@ -65,7 +65,7 @@ times. The agent sent random actions.
 .. code:: sh
 
    #run game by providing a config file
-   python -m comprl.server --config="examples/rockpaperscissors/config.toml"
+   comprl-server --config="examples/rockpaperscissors/config.toml"
 
    #run agent
    python -m examples.rockpaperscissors.agent
@@ -82,7 +82,7 @@ Two agents play several rounds of the `hockey game
 .. code:: sh
 
    #run game by providing a config file
-   python -m comprl.server --config="examples/hockey/config.toml"
+   comprl-server --config="examples/hockey/config.toml"
 
    #run one of the following agents
    python -m examples.hockey.weak_hockey_agent

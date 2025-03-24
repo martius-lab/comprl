@@ -43,7 +43,7 @@ from: ubuntu:24.04
 
     . /venv/bin/activate
     # assumes that the config is bound at that path
-    python -m comprl.server --config "${COMPRL_CONFIG_PATH}"
+    comprl-server --config "${COMPRL_CONFIG_PATH}"
 
     curl -H "Priority: urgent" -H "Tags: warning" -d "comprl.server terminated. Exit code: $?" ntfy.sh/${NTFY_TOPIC}
 

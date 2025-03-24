@@ -28,6 +28,7 @@ dependencies = [
 comprl-games = "comprl.scripts.list_games:main"
 comprl-monitor = "comprl.scripts.monitor:main"
 comprl-score-decay = "comprl.scripts.score_decay:main"
+comprl-server = "comprl.server.__main__:main"
 comprl-users = "comprl.scripts.manage_users:app"
 
 [project.optional-dependencies]

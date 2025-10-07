@@ -8,6 +8,7 @@ from .components import standard_layout
 from . import config, reflex_local_auth
 from .pages import user_dashboard, leaderboard, games
 from .reflex_local_auth.local_auth import LocalAuthState
+from .protected_state import UserDashboardState
 
 
 def _load_comprl_configuration() -> None:
@@ -66,11 +67,13 @@ app.add_page(
     user_dashboard.dashboard,
     route="/dashboard",
     title="Dashboard",
+    on_load=UserDashboardState.on_load,
 )
 app.add_page(
     leaderboard.leaderboard,
     route="/leaderboard",
     title="Leaderboard",
+    on_load=UserDashboardState.on_load,
 )
 app.add_page(
     games.game_overview,

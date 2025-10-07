@@ -7,7 +7,6 @@ from ..protected_state import UserDashboardState
 from .. import reflex_local_auth
 
 
-@rx.page(on_load=UserDashboardState.on_load)
 @reflex_local_auth.require_login
 def leaderboard() -> rx.Component:
     return standard_layout(

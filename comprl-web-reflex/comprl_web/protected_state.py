@@ -83,7 +83,7 @@ class UserDashboardState(ProtectedState):
             )
         return stats
 
-    @rx.var(cache=False)
+    @rx.var(cache=False, initial_value=0)
     def ranking_position(self) -> int:
         if not self.is_authenticated:
             return -1
@@ -107,7 +107,7 @@ class UserDashboardState(ProtectedState):
             return -1
         return rank[0]
 
-    @rx.var(cache=True)
+    @rx.var(cache=True, initial_value="")
     def client_config(self) -> str:
         cfg = config.get_config()
         return textwrap.dedent(

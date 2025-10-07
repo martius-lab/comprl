@@ -76,9 +76,9 @@ class LoginState(LocalAuthState):
         if not self.is_hydrated:
             # wait until after hydration to ensure auth_token is known
             return LoginState.redir()  # type: ignore
-        page = self.router.page.path
+        page = self.router.url.path
         if not self.is_authenticated and page != routes.LOGIN_ROUTE:
-            self.redirect_to = self.router.page.raw_path
+            self.redirect_to = page
             return rx.redirect(routes.LOGIN_ROUTE)
         elif self.is_authenticated and page == routes.LOGIN_ROUTE:
             return rx.redirect(self.redirect_to or "/")

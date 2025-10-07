@@ -8,7 +8,6 @@ from .. import reflex_local_auth
 from ..reflex_local_auth.local_auth import LocalAuthState
 
 
-@rx.page(on_load=UserDashboardState.on_load)
 @reflex_local_auth.require_login
 def dashboard() -> rx.Component:
     win_rate = round(

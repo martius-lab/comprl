@@ -29,13 +29,16 @@ def get_session() -> sa.orm.Session:
     return sa.orm.Session(engine)
 
 
+NONE_USER = User(username="", password="", token="")
+
+
 class LocalAuthState(rx.State):
     # The auth_token is stored in local storage to persist across tab and browser
     # sessions.
     auth_token: str = rx.LocalStorage(name=AUTH_TOKEN_LOCAL_STORAGE_KEY)
 
     @rx.var(cache=True)
-    def authenticated_user(self) -> User | None:
+    def authenticated_user(self, initial_value=NONE_USER) -> User:
         """The currently authenticated user.
 
         Returns:
@@ -53,7 +56,7 @@ class LocalAuthState(rx.State):
             ).first()
             if result:
                 return result
-        return None
+        return NONE_USER
 
     @rx.var(cache=True, interval=DEFAULT_AUTH_REFRESH_DELTA)
     def is_authenticated(self) -> bool:
@@ -62,7 +65,7 @@ class LocalAuthState(rx.State):
         Returns:
             True if the authenticated user has a positive user ID, False otherwise.
         """
-        return self.authenticated_user is not None
+        return self.authenticated_user.user_id is not None
 
     def do_logout(self) -> None:
         """Destroy LocalAuthSessions associated with the auth_token."""

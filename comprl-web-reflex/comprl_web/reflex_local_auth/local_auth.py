@@ -29,7 +29,7 @@ def get_session() -> sa.orm.Session:
     return sa.orm.Session(engine)
 
 
-NONE_USER = User(username="", password="", token="")
+NONE_USER = User(username="", password=b"", token="")
 
 
 class LocalAuthState(rx.State):

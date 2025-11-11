@@ -37,15 +37,18 @@ comprl-users = "comprl.scripts.manage_users:app"
 
 monitor = ["textual"]
 
-test = ["pytest"]
-# here you can also list `types-*` stub packages for third-party packages
-mypy = ["mypy", "types-tabulate"]
 
-# For convenience: Install all development-dependencies
+[dependency-groups]
 dev = [
-    "comprl[test]",
-    "comprl[mypy]",
+    "mypy", 
+    "pytest",
     "ruff",
+    "types-tabulate",
+]
+lsp = [
+    "pylsp-rope>=0.1.17",
+    "python-lsp-ruff>=2.2.2",
+    "python-lsp-server>=1.12.2",
 ]
 
 [tool.setuptools.package-data]

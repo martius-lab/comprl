@@ -1,3 +1,19 @@
+[project]
+name = "comprl-web-reflex"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "comprl",
+    "reflex",
+    "passlib",
+    "bcrypt",
+]
+
+[tool.uv.sources]
+comprl = { path = "../comprl", editable = true }
+
 [tool.ruff]
 lint.select = [
     "E",

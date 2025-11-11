@@ -58,7 +58,7 @@ class LocalAuthState(rx.State):
                 return result
         return NONE_USER
 
-    @rx.var(cache=True, interval=DEFAULT_AUTH_REFRESH_DELTA)
+    @rx.var(cache=True, interval=DEFAULT_AUTH_REFRESH_DELTA, initial_value=False)
     def is_authenticated(self) -> bool:
         """Whether the current user is authenticated.
 

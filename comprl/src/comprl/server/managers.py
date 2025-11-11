@@ -420,13 +420,15 @@ class MatchmakingManager:
 
         # self.match_quality_rater = OpenskillRater(self.model)
         self.match_quality_rater = GaussLeaderboardRater(
-            UserData(), sigma=config.gauss_leaderboard_rater_sigma
+            UserData(), sigma=config.matchmaking.gauss_leaderboard_rater_sigma
         )
 
-        self._match_quality_threshold = config.match_quality_threshold
-        self._percentage_min_players_waiting = config.percentage_min_players_waiting
-        self._percental_time_bonus = config.percental_time_bonus
-        self._max_parallel_games = config.max_parallel_games
+        self._match_quality_threshold = config.matchmaking.match_quality_threshold
+        self._percentage_min_players_waiting = (
+            config.matchmaking.percentage_min_players_waiting
+        )
+        self._percental_time_bonus = config.matchmaking.percental_time_bonus
+        self._max_parallel_games = config.matchmaking.max_parallel_games
 
         # cache matchmaking scores
         self._match_quality_scores: dict[frozenset[str], float] = {}

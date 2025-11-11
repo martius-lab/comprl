@@ -37,8 +37,8 @@ class LocalAuthState(rx.State):
     # sessions.
     auth_token: str = rx.LocalStorage(name=AUTH_TOKEN_LOCAL_STORAGE_KEY)
 
-    @rx.var(cache=True)
-    def authenticated_user(self, initial_value=NONE_USER) -> User:
+    @rx.var(cache=True, initial_value=NONE_USER)
+    def authenticated_user(self) -> User:
         """The currently authenticated user.
 
         Returns:

@@ -170,7 +170,7 @@ wheels = [
 [[package]]
 name = "comprl"
 version = "0.2.3.dev0"
-source = { editable = "../comprl" }
+source = { directory = "../comprl" }
 dependencies = [
     { name = "bcrypt" },
     { name = "numpy" },
@@ -211,7 +211,7 @@ lsp = [
 ]
 
 [[package]]
-name = "comprl-web-reflex"
+name = "comprl-web"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -224,7 +224,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bcrypt" },
-    { name = "comprl", editable = "../comprl" },
+    { name = "comprl", directory = "../comprl" },
     { name = "passlib" },
     { name = "reflex" },
 ]

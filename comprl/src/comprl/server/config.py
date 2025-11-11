@@ -16,6 +16,25 @@ import variconf
 
 
 @dataclasses.dataclass
+class MatchmakingConfig:
+    """Settings for matchmaking.
+
+    These settings can be reloaded at runtime.
+    """
+
+    #: Sigma value for the :class:`~comprl.server.managers.GaussLeaderboardRater`.
+    gauss_leaderboard_rater_sigma: float = 20.0
+
+    #: Threshold for matching players
+    match_quality_threshold: float = 0.3
+    #: Percentage of players always waiting in queue
+    percentage_min_players_waiting: float = 0.1
+    percental_time_bonus: float = 0.1
+    #: Maximum number of games that can be played in parallel
+    max_parallel_games: int = 100
+
+
+@dataclasses.dataclass
 class Config:
     """Configuration settings."""
 
@@ -36,17 +55,10 @@ class Config:
     #: Path to the data directory (used to save data like game actions)
     data_dir: pathlib.Path = omegaconf.MISSING
 
-    #: Sigma value for the :class:`~comprl.server.managers.GaussLeaderboardRater`.
-    gauss_leaderboard_rater_sigma: float = 20.0
-
-    #: Threshold for matching players
-    match_quality_threshold: float = 0.3
-    #: Percentage of players always waiting in queue
-    percentage_min_players_waiting: float = 0.1
-    #: (Minutes waiting * percentage) added as a time bonus for waiting players
-    percental_time_bonus: float = 0.1
-    #: Maximum number of games that can be played in parallel
-    max_parallel_games: int = 100
+    #: Matchmaking settings
+    matchmaking: MatchmakingConfig = dataclasses.field(
+        default_factory=MatchmakingConfig
+    )
 
     #: File to which monitoring information is written.  Ideally use a in-memory file
     #: (e.g. in /dev/shm).
@@ -87,7 +99,7 @@ def load_config(
     wconf = variconf.WConf(Config)
 
     with open(config_file, "rb") as f:
-        config_from_file = tomllib.load(f)["CompetitionServer"]
+        config_from_file = tomllib.load(f)["comprl"]
 
     _config = wconf.load_dict(config_from_file).load_dotlist(dotlist_overwrites)
     config = Config(**_config.get())  # type: ignore[arg-type]

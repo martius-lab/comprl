@@ -1,0 +1,19 @@
+
+services:
+  game-server:
+    environment:
+      COMPRL_CONFIG_PATH: ${COMPRL_CONFIG_PATH:-/config/config.toml}
+    build:
+      context: ..
+      dockerfile: ./comprl-hockey-game/Dockerfile
+    ports:
+      - 65335:65335
+    volumes:
+      #- upload-data:/app/uploaded_files
+      # mount config files, so we can change config without rebuilding the container
+      - type: bind
+        source: ./
+        target: /config
+        bind:
+          create_host_path: false
+    restart: always

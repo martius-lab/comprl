@@ -2,7 +2,7 @@
 services:
   game-server:
     environment:
-      COMPRL_CONFIG_PATH: ${COMPRL_CONFIG_PATH:-/config/config.toml}
+      COMPRL_CONFIG_PATH: ${COMPRL_CONFIG_PATH:-/config/config-docker.toml}
     build:
       context: ..
       dockerfile: ./comprl-hockey-game/Dockerfile
@@ -16,4 +16,9 @@ services:
         target: /config
         bind:
           create_host_path: false
+      - type: bind
+        source: ${COMPRL_DATA_PATH:-/tmp/comprl-data}
+        target: /comprl-data
+        bind:
+          create_host_path: true
     restart: always

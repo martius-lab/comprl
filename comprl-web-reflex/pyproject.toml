@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-comprl = { path = "../comprl", editable = true }
+comprl = { path = "../comprl" }
 
 [tool.ruff]
 lint.select = [

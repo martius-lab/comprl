@@ -1,0 +1,16 @@
+# need to prefix everything with **/ to make it match also inside arbitrary
+# subfolders.
+
+**/*~
+**/.venv
+**/.*cache
+**/*.db
+**/.env
+
+**/.git
+**/.jj
+**/__pycache__
+
+**/Dockerfile
+**/compose.yaml
+**/compose.*.yaml

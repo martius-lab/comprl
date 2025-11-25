@@ -8,6 +8,7 @@
 *.swp
 *.backup
 .cache
+.env
 
 # python-related ignores
 *.pyc

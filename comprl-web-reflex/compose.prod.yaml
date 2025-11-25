@@ -1,0 +1,12 @@
+# Use this override file to run the app in prod mode with redis
+#     docker compose -f compose.yaml -f compose.prod.yaml up -d
+services:
+  redis:
+    image: redis
+    restart: always
+
+  app:
+    environment:
+      REFLEX_REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis

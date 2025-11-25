@@ -24,6 +24,7 @@ To host your own server with your game read :doc:`Getting-Started`.
 
    ./implementing_a_game.rst
    ./how_to_implement_client.rst
+   ./how_to_docker.rst
 
 
 .. toctree::

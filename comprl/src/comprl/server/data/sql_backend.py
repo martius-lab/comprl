@@ -38,6 +38,18 @@ class User(Base):
     mu: Mapped[float] = mapped_column(default=DEFAULT_MU)
     sigma: Mapped[float] = mapped_column(default=DEFAULT_SIGMA)
 
+    @staticmethod
+    def ranking_order_expression() -> sa.sql.expression.ColumnElement[float]:
+        """Get the expression used for ranking users.
+
+        This function can be used in order_by clauses.
+        """
+        return User.mu - 3 * User.sigma
+
+    def score(self) -> float:
+        """Compute the score of the user."""
+        return self.mu - 3 * self.sigma
+
 
 class Game(Base):
     """Games."""
@@ -114,7 +126,7 @@ class GameData:
 
 def get_ranked_users(session: sa.orm.Session) -> Sequence[User]:
     """Get all users ordered by their score (mu - sigma)."""
-    stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
+    stmt = sa.select(User).order_by(User.ranking_order_expression().desc())
     return session.scalars(stmt).all()
 
 

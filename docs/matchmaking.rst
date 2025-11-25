@@ -27,12 +27,7 @@ Each user has a score which consists of a values :math:`\mu` and :math:`\sigma`.
 skill value.  After each game, these values are updated based on the outcome of the game
 (won, lost, draw).
 
-For the leaderboard, the users are than ranked based on :math:`\mu - \sigma`.
-
-.. note::
-
-   The default in OpenSkill is actually :math:`\mu - 3\sigma`.  We should investigate,
-   if we want to use that as well.
+For the leaderboard, the users are than ranked based on :math:`\mu - 3\sigma`.
 
 
 Matchmaking

@@ -56,7 +56,11 @@ def main() -> int:
 
     # get ranked users
     with sa.orm.Session(engine) as session:
-        stmt = sa.select(User).order_by((User.mu - User.sigma).desc()).limit(args.n)
+        stmt = (
+            sa.select(User)
+            .order_by(User.ranking_order_expression().desc())
+            .limit(args.n)
+        )
         ranking = session.scalars(stmt).all()
 
     for user1, user2 in itertools.combinations(ranking, 2):

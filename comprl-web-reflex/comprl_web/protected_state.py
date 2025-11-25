@@ -92,7 +92,7 @@ class UserDashboardState(ProtectedState):
             ranked_users_query = session.query(
                 User,
                 sa.func.rank()
-                .over(order_by=(User.mu - User.sigma).desc())
+                .over(order_by=User.ranking_order_expression().desc())
                 .label("rank"),
             ).subquery()
 
@@ -129,7 +129,7 @@ class UserDashboardState(ProtectedState):
             (
                 i + 1,
                 user.username,
-                round(user.mu - user.sigma, 2),
+                round(user.score(), 2),
                 f"{user.mu:.2f} / {user.sigma:.2f}",
             )
             for i, user in enumerate(self.ranked_users)

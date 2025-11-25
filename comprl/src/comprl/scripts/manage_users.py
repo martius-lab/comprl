@@ -33,7 +33,7 @@ def list(
     data = []
     with sa.orm.Session(engine) as session:
         if ranked:
-            stmt = sa.select(User).order_by((User.mu - User.sigma).desc())
+            stmt = sa.select(User).order_by(User.ranking_order_expression().desc())
         else:
             stmt = sa.select(User)
         users = session.scalars(stmt).all()
@@ -72,6 +72,7 @@ def list(
                     user.role,
                     user.mu,
                     user.sigma,
+                    user.score(),
                     num_games_played,
                     num_games_won,
                     num_disconnects,
@@ -87,6 +88,7 @@ def list(
                 "Role",
                 "Mu",
                 "Sigma",
+                "Score",
                 "Games Played",
                 "Games Won",
                 "Disconnects",

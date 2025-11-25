@@ -16,7 +16,7 @@ COPY ./comprl-hockey-game/requirements.txt .
 RUN apt-get update && apt-get install -y swig
 
 # Install comprl server
-RUN uv sync --locked
+RUN uv sync --locked --extra monitor
 RUN uv pip install -r ./requirements.txt
 
 

@@ -37,8 +37,8 @@ class LocalAuthState(rx.State):
     # sessions.
     auth_token: str = rx.LocalStorage(name=AUTH_TOKEN_LOCAL_STORAGE_KEY)
 
-    @rx.var(cache=True)
-    def authenticated_user(self, initial_value=NONE_USER) -> User:
+    @rx.var(cache=True, initial_value=NONE_USER)
+    def authenticated_user(self) -> User:
         """The currently authenticated user.
 
         Returns:
@@ -58,7 +58,7 @@ class LocalAuthState(rx.State):
                 return result
         return NONE_USER
 
-    @rx.var(cache=True, interval=DEFAULT_AUTH_REFRESH_DELTA)
+    @rx.var(cache=True, interval=DEFAULT_AUTH_REFRESH_DELTA, initial_value=False)
     def is_authenticated(self) -> bool:
         """Whether the current user is authenticated.
 

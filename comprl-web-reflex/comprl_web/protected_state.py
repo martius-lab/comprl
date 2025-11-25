@@ -123,7 +123,7 @@ class UserDashboardState(ProtectedState):
         with get_session() as session:
             self.ranked_users = get_ranked_users(session)  # type: ignore
 
-    @rx.var(cache=True)
+    @rx.var(cache=True, initial_value=())
     def leaderboard_entries(self) -> Sequence[tuple[int, str, float, str]]:
         return [
             (
@@ -194,11 +194,11 @@ class UserGamesState(ProtectedState):
 
             return session.scalars(stmt).all()
 
-    @rx.var(cache=True)
+    @rx.var(cache=True, initial_value=1)
     def page_number(self) -> int:
         return (self.offset // self.limit) + 1 + (1 if self.offset % self.limit else 0)
 
-    @rx.var(cache=True)
+    @rx.var(cache=True, initial_value=1)
     def total_pages(self) -> int:
         return self.total_items // self.limit + (
             1 if self.total_items % self.limit else 0

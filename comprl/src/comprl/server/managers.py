@@ -418,8 +418,6 @@ class MatchmakingManager:
         self.player_manager = player_manager
         self.game_manager = game_manager
 
-        config = get_config()
-
         # queue storing player info and time they joined the queue
         self._queue: list[QueueEntry] = []
         # The model used for ranking

@@ -23,12 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Instead, derive a custom class from it, that implements the `get_step` method.
 - BREAKING: Relative paths in the config file are now resolved relative to the
   config file location instead of to the working directory.
+- BREAKING: Structure of configuration changed.  See documentation for more information.
 - Matchmaking now samples from all candidates with quality above the threshold
   instead of using the first in the list.
 - Do not update player ratings for games with disconnect.
 - Add option to limit number of games run in parallel.
 - Matchmaking uses custom "Gauss-Leaderboard score" to determine match quality
   instead of OpenSkill draw probability.
+- Use uv to manage the package
+- User score is now computed using `mu - 3*sigma` (before it was `mu - sigma`).
 
 ## Removed
 - The `Agent.event` decorator has been removed.  Instead of using it, create
@@ -42,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tool `comprl-monitor` to monitor the connected players and waiting queue.
 - Install entry point `comprl-server` to run the server (as shorter alternative
   to `python -m ...`).
+- Matchmaking parameters can now be reloaded from the config file at runtime by sending
+  a SIGHUP signal to the server.
 
 
 ## [0.1.0]

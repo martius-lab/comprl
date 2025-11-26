@@ -32,4 +32,6 @@ COPY --chown=comprl --from=init /app /app
 USER comprl
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 
-CMD comprl-server --config "${COMPRL_CONFIG_PATH}"
+# 'exec' is important here so that signals are properly propagated to the comprl-server
+# process (needed for config reloading)
+CMD exec comprl-server --config "${COMPRL_CONFIG_PATH}"

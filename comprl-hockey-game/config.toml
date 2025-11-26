@@ -1,4 +1,4 @@
-[CompetitionServer]
+[comprl]
 port = 65335
 server_update_interval = 5
 timeout = 10
@@ -7,13 +7,14 @@ game_path = "hockey_game.py"
 game_class = "HockeyGame"
 database_path = "hockey.db"
 data_dir = "/tmp"
+monitor_log_path = "/dev/shm/comprl_monitor"
 
+registration_key = "secret"
+server_url = "comprl.example.com"
+
+[comprl.matchmaking]
 gauss_leaderboard_rater_sigma = 20.0
 match_quality_threshold = 0.4
 percentage_min_players_waiting = 0.1
 percental_time_bonus = 0.1
 max_parallel_games = 100
-monitor_log_path = "/dev/shm/comprl_monitor"
-
-registration_key = "secret"
-server_url = "comprl.example.com"

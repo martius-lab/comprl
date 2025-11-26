@@ -1,6 +1,7 @@
 """Configuration settings for the server."""
 
 import dataclasses
+import logging
 import pathlib
 import os
 from typing import Optional
@@ -13,6 +14,29 @@ except ImportError:
 
 import omegaconf
 import variconf
+
+
+log = logging.getLogger("comprl.config")
+
+
+@dataclasses.dataclass
+class MatchmakingConfig:
+    """Settings for matchmaking.
+
+    These settings can be reloaded at runtime.
+    """
+
+    #: Sigma value for the :class:`~comprl.server.managers.GaussLeaderboardRater`.
+    gauss_leaderboard_rater_sigma: float = 20.0
+
+    #: Threshold for matching players
+    match_quality_threshold: float = 0.3
+    #: Percentage of players always waiting in queue
+    percentage_min_players_waiting: float = 0.1
+    #: (Minutes waiting * percentage) added as a time bonus for waiting players
+    percental_time_bonus: float = 0.1
+    #: Maximum number of games that can be played in parallel
+    max_parallel_games: int = 100
 
 
 @dataclasses.dataclass
@@ -36,17 +60,10 @@ class Config:
     #: Path to the data directory (used to save data like game actions)
     data_dir: pathlib.Path = omegaconf.MISSING
 
-    #: Sigma value for the :class:`~comprl.server.managers.GaussLeaderboardRater`.
-    gauss_leaderboard_rater_sigma: float = 20.0
-
-    #: Threshold for matching players
-    match_quality_threshold: float = 0.3
-    #: Percentage of players always waiting in queue
-    percentage_min_players_waiting: float = 0.1
-    #: (Minutes waiting * percentage) added as a time bonus for waiting players
-    percental_time_bonus: float = 0.1
-    #: Maximum number of games that can be played in parallel
-    max_parallel_games: int = 100
+    #: Matchmaking settings
+    matchmaking: MatchmakingConfig = dataclasses.field(
+        default_factory=MatchmakingConfig
+    )
 
     #: File to which monitoring information is written.  Ideally use a in-memory file
     #: (e.g. in /dev/shm).
@@ -58,6 +75,7 @@ class Config:
     server_url: str = "comprl.example.com"
 
 
+_config_file: str | os.PathLike | None = None
 _config: Config | None = None
 
 
@@ -75,7 +93,7 @@ def set_config(config: Config):
     _config = config
 
 
-def load_config(
+def _load_config(
     config_file: str | os.PathLike, dotlist_overwrites: list[str] | None = None
 ) -> Config:
     """Load config from config file and optional dotlist overwrites."""
@@ -87,7 +105,7 @@ def load_config(
     wconf = variconf.WConf(Config)
 
     with open(config_file, "rb") as f:
-        config_from_file = tomllib.load(f)["CompetitionServer"]
+        config_from_file = tomllib.load(f)["comprl"]
 
     _config = wconf.load_dict(config_from_file).load_dotlist(dotlist_overwrites)
     config = Config(**_config.get())  # type: ignore[arg-type]
@@ -98,6 +116,39 @@ def load_config(
     config.database_path = config_file_dir / config.database_path
     config.data_dir = config_file_dir / config.data_dir
 
-    set_config(config)
+    return config
 
+
+def load_config(
+    config_file: str | os.PathLike, dotlist_overwrites: list[str] | None = None
+) -> Config:
+    """Load config from config file and optional dotlist overwrites."""
+    global _config_file
+    _config_file = config_file
+
+    config = _load_config(config_file, dotlist_overwrites)
+    set_config(config)
     return get_config()
+
+
+def reload_config():
+    """Reload some configuration from the config file.
+
+    **Important:**
+
+    - Only settings from the "matchmaking" section are reloaded.  Other settings require
+      a server restart.
+    - If some of the affected settings have been set via dotlist overwrites when
+      starting the server, those settings will be lost and replaced by the values from
+      the config file.  So hot-reloading and dotlist overwrites should not be combined!
+    """
+    if _config_file is None:
+        log.error("No config file specified, cannot reload config.")
+        return
+
+    log.info("Reloading configuration from %s", _config_file)
+    new_config = _load_config(_config_file)
+    current_config = get_config()
+
+    # update only the matchmaking settings (other settings require a restart)
+    current_config.matchmaking = new_config.matchmaking

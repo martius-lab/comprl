@@ -10,6 +10,7 @@ import inspect
 import logging
 import os
 import pathlib
+import signal
 import sys
 import time
 from typing import Type, TYPE_CHECKING
@@ -173,6 +174,11 @@ def load_class(module_path: str, class_name: str):
     return getattr(module, class_name)
 
 
+def signal_reload_config(signal_num, stack_frame):
+    """Signal handler to reload config."""
+    config.reload_config()
+
+
 def main():
     """
     Main function to start the server.
@@ -212,6 +218,8 @@ def main():
     if not conf.data_dir.is_dir():
         log.error("data_dir '%s' not found or not a directory", conf.data_dir)
         return
+
+    signal.signal(signal.SIGHUP, signal_reload_config)
 
     server = Server(game_type)
     networking.launch_server(

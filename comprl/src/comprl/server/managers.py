@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from openskill.models import PlackettLuce
 from typing import Type, NamedTuple
@@ -359,18 +360,24 @@ class GaussLeaderboardRater(MatchQualityRater):
     """
 
     def __init__(
-        self, user_data: UserData, scale: float = 0.5, sigma: float = 20
+        self,
+        user_data: UserData,
+        scale: float = 0.5,
+        sigma_func: Callable[[], float] = lambda: 20.0,
     ) -> None:
         """
         Args:
-            user_data (UserData): The user data object to get the user ranking.
-            scale (float): Scaling factor for the score.  The match quality will
+            user_data: The user data object to get the user ranking.
+            scale: Scaling factor for the score.  The match quality will
                 correspond to this value if the leaderboard distance is zero.
-            sigma (float): The standard deviation of the Gaussian function.
+            sigma_func: Function returning standard deviation of the Gaussian function.
+                Using a function here allows to dynamically change the value based, e.g.
+                when configuration is reloaded.
         """
         self.user_data = user_data
         self.scale = scale
-        self.sigma = sigma
+        self.sigma_func = sigma_func
+
         self.update_model()
 
     def update_model(self) -> None:
@@ -390,7 +397,7 @@ class GaussLeaderboardRater(MatchQualityRater):
         pos1 = self._get_ranking_position(player1.user.user_id)
         pos2 = self._get_ranking_position(player2.user.user_id)
         signed_dist = pos1 - pos2
-        return np.exp(-(signed_dist**2) / (2 * self.sigma**2)) * self.scale
+        return np.exp(-(signed_dist**2) / (2 * self.sigma_func() ** 2)) * self.scale
 
 
 class MatchmakingManager:
@@ -411,8 +418,6 @@ class MatchmakingManager:
         self.player_manager = player_manager
         self.game_manager = game_manager
 
-        config = get_config()
-
         # queue storing player info and time they joined the queue
         self._queue: list[QueueEntry] = []
         # The model used for ranking
@@ -420,13 +425,9 @@ class MatchmakingManager:
 
         # self.match_quality_rater = OpenskillRater(self.model)
         self.match_quality_rater = GaussLeaderboardRater(
-            UserData(), sigma=config.gauss_leaderboard_rater_sigma
+            UserData(),
+            sigma_func=lambda: get_config().matchmaking.gauss_leaderboard_rater_sigma,
         )
-
-        self._match_quality_threshold = config.match_quality_threshold
-        self._percentage_min_players_waiting = config.percentage_min_players_waiting
-        self._percental_time_bonus = config.percental_time_bonus
-        self._max_parallel_games = config.max_parallel_games
 
         # cache matchmaking scores
         self._match_quality_scores: dict[frozenset[str], float] = {}
@@ -511,8 +512,10 @@ class MatchmakingManager:
         Returns:
             int: The minimum number of players.
         """
+        config = get_config()
         return int(
-            len(self.player_manager.auth_players) * self._percentage_min_players_waiting
+            len(self.player_manager.auth_players)
+            * config.matchmaking.percentage_min_players_waiting
         )
 
     def _compute_match_qualities(
@@ -547,16 +550,17 @@ class MatchmakingManager:
             return
 
         rng = np.random.default_rng()
+        config = get_config()
 
         i = 0
         while i < len(self._queue) - 1:
             # stop early if the limit for parallel games is reached
             num_games = len(self.game_manager.games)
-            if num_games >= self._max_parallel_games:
+            if num_games >= config.matchmaking.max_parallel_games:
                 self._log.debug(
                     "Limit for parallel games is reached (running: %d, limit: %d).",
                     num_games,
-                    self._max_parallel_games,
+                    config.matchmaking.max_parallel_games,
                 )
                 return
 
@@ -566,7 +570,9 @@ class MatchmakingManager:
             match_qualities = self._compute_match_qualities(player1, candidates)
             # filter out matches below the quality threshold
             match_qualities = [
-                mq for mq in match_qualities if mq[1] > self._match_quality_threshold
+                mq
+                for mq in match_qualities
+                if mq[1] > config.matchmaking.match_quality_threshold
             ]
 
             if match_qualities:
@@ -638,13 +644,16 @@ class MatchmakingManager:
         if cache_key in self._match_quality_scores:
             return self._match_quality_scores[cache_key]
 
+        config = get_config()
+
         now = datetime.now()
         waiting_time_p1 = (now - player1.in_queue_since).total_seconds()
         waiting_time_p2 = (now - player2.in_queue_since).total_seconds()
         combined_waiting_time = waiting_time_p1 + waiting_time_p2
         # calculate a bonus if the players waited a long time
         waiting_bonus = max(
-            0.0, (combined_waiting_time / 60 - 1) * self._percental_time_bonus
+            0.0,
+            (combined_waiting_time / 60 - 1) * config.matchmaking.percental_time_bonus,
         )
 
         match_quality = self.match_quality_rater.rate(player1, player2)

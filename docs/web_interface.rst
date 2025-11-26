@@ -12,7 +12,7 @@ Registration key
 
 To be able to register, users have to provide a "registration key".  This is a simple
 means to restrict registration to invited users.  The registration key is set in the
-:ref:`server config file <server_config>`.  It is meant to be given to the people who
+:doc:`server config file <configuration>`.  It is meant to be given to the people who
 are allowed to take part in the competition, so they can create an account for
 themselves.
 

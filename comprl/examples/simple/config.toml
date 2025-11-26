@@ -1,11 +1,13 @@
-[CompetitionServer]
-    port = 65335
-    timeout = 10
-    log_level = "DEBUG"
-    game_path = "game.py"
-    game_class = "ExampleGame"
-    database_path = "simple.db"
-    data_dir = "/tmp"
-    match_quality_threshold = 0.4
-    percentage_min_players_waiting = 0.1
-    percental_time_bonus = 0.1
+[comprl]
+port = 65335
+timeout = 10
+log_level = "DEBUG"
+game_path = "game.py"
+game_class = "ExampleGame"
+database_path = "simple.db"
+data_dir = "/tmp"
+
+[comprl.matchmaking]
+match_quality_threshold = 0.4
+percentage_min_players_waiting = 0.1
+percental_time_bonus = 0.1

@@ -1,6 +1,7 @@
 
 services:
   game-server:
+    image: comprl-hockey-game
     environment:
       COMPRL_CONFIG_PATH: ${COMPRL_CONFIG_PATH:-/config/config-docker.toml}
     build:
@@ -22,3 +23,34 @@ services:
         bind:
           create_host_path: true
     restart: always
+
+  # TODO: Is there a way to configure the two bot instances without duplicating
+  # everything?
+
+  bot-agent-strong:
+    image: comprl-hockey-bot
+    environment:
+      COMPRL_SERVER_URL: ${COMPRL_SERVER_URL:-game-server}
+      COMPRL_SERVER_PORT: ${COMPRL_SERVER_PORT:-65335}
+      COMPRL_ACCESS_TOKEN: ${STRONG_BOT_ACCESS_TOKEN}
+      AGENT_TYPE: ${AGENT_TYPE:-strong}
+    build:
+      context: ..
+      dockerfile: ./comprl-hockey-game/bot-agent.Dockerfile
+    restart: always
+    depends_on:
+      - game-server
+
+  bot-agent-weak:
+    image: comprl-hockey-bot
+    environment:
+      COMPRL_SERVER_URL: ${COMPRL_SERVER_URL:-game-server}
+      COMPRL_SERVER_PORT: ${COMPRL_SERVER_PORT:-65335}
+      COMPRL_ACCESS_TOKEN: ${WEAK_BOT_ACCESS_TOKEN}
+      AGENT_TYPE: ${AGENT_TYPE:-weak}
+    build:
+      context: ..
+      dockerfile: ./comprl-hockey-game/bot-agent.Dockerfile
+    restart: always
+    depends_on:
+      - game-server

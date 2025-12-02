@@ -72,6 +72,8 @@ def initialize_agent(agent_args: list[str]) -> Agent:
     )
     args = parser.parse_args(agent_args)
 
+    print(f"Run {args.agent} agent")
+
     # Initialize the agent based on the arguments.
     agent: Agent
     if args.agent == "weak":

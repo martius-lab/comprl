@@ -25,7 +25,7 @@ Some manual setup is needed to get things running:
 
    .. code:: sh
 
-      sudo make up
+      sudo make up-server
 
    in ``comprl-hockey-game``
 7. Start the web server by running
@@ -37,6 +37,31 @@ Some manual setup is needed to get things running:
    in ``comprl-web-reflex``
 
 Both can be stopped again by running ``sudo make down`` in both directories.
+
+
+Run Bots
+========
+
+Create two bot users and add their access tokens in the ``.env`` file:
+
+.. code:: sh
+
+    STRONG_BOT_ACCESS_TOKEN=token2
+    WEAK_BOT_ACCESS_TOKEN=token1
+
+Launch be bots with
+
+.. code:: sh
+
+   sudo make up-bots
+
+in ``comprl-hockey-game``.
+
+To stop only the bots but keep the server running, you can use
+
+.. code:: sh
+
+   sudo make stop-bots
 
 
 Reloading Configuration

@@ -17,6 +17,7 @@ services:
       - type: bind
         source: ${COMPRL_CONFIG_PATH:-../comprl-hockey-game/config-docker.toml}
         target: /config.toml
+        read_only: true
         bind:
           create_host_path: false
       - type: bind

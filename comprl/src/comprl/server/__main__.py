@@ -179,7 +179,7 @@ def signal_reload_config(signal_num, stack_frame):
     config.reload_config()
 
 
-def main():
+def main() -> int:
     """
     Main function to start the server.
     """
@@ -192,14 +192,13 @@ def main():
         conf = config.load_config(args.config, args.config_overwrites)
     except Exception as e:
         log.error("Failed to load config: %s", e)
-        return
+        return 1
 
     # set up logging
     logging.basicConfig(
         level=conf.log_level,
         format="[%(asctime)s|%(name)s|%(levelname)s] %(message)s",
     )
-    # log = logging.getLogger("comprl.server")
 
     # resolve relative game_path w.r.t. current working directory
     absolute_game_path = os.path.join(os.getcwd(), conf.game_path)
@@ -209,15 +208,19 @@ def main():
     # check if the class could be loaded
     if game_type is None:
         log.error(f"Could not load game class from {absolute_game_path}")
-        return
+        return 1
     # check if the class is fully implemented
     if inspect.isabstract(game_type):
         log.error("Provided game class is not valid because it is still abstract.")
-        return
+        return 1
 
     if not conf.data_dir.is_dir():
         log.error("data_dir '%s' not found or not a directory", conf.data_dir)
-        return
+        return 1
+
+    if not conf.database_path.is_file():
+        log.error("database_path '%s' not found or not a file", conf.database_path)
+        return 1
 
     signal.signal(signal.SIGHUP, signal_reload_config)
 
@@ -226,6 +229,8 @@ def main():
         server=server, port=conf.port, update_interval=conf.server_update_interval
     )
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

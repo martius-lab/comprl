@@ -3,9 +3,9 @@ port = 65335
 server_update_interval = 5
 timeout = 10
 log_level = "INFO"
-game_path = "hockey_game.py"
+game_path = "/hockey/hockey_game.py"
 game_class = "HockeyGame"
-database_path = "hockey.db"
+database_path = "/comprl-data/hockey.db"
 data_dir = "/comprl-data"
 monitor_log_path = "/dev/shm/comprl_monitor"
 

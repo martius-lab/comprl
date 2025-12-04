@@ -8,19 +8,19 @@
 services:
   app:
     environment:
-      COMPRL_CONFIG_PATH: ${COMPRL_CONFIG_PATH:-/config/config-docker.toml}
+      # this refers to the path inside the container (see binding added below)
+      COMPRL_CONFIG_PATH: /config.toml
     build:
       context: ..
       dockerfile: ./comprl-web-reflex/Dockerfile
     volumes:
-      # mount config files, so we can change config without rebuilding the container
       - type: bind
-        source: ../comprl-hockey-game
-        target: /config
+        source: ${COMPRL_CONFIG_PATH:-../comprl-hockey-game/config-docker.toml}
+        target: /config.toml
         bind:
           create_host_path: false
       - type: bind
-        source: ${COMPRL_DATA_PATH:-/tmp/comprl-data}
+        source: ${COMPRL_DATA_PATH:-../comprl-hockey-game}
         target: /comprl-data
         bind:
           create_host_path: true

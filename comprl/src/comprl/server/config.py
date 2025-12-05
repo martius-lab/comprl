@@ -20,6 +20,21 @@ log = logging.getLogger("comprl.config")
 
 
 @dataclasses.dataclass
+class ScoreDecayConfig:
+    """Settings for score decay.
+
+    These settings can be reloaded at runtime.
+    """
+
+    #: Whether to apply score decay or not
+    enabled: bool = False
+    #: Interval (in minutes) at which scores of inactive users are decayed.
+    interval_minutes: int = 15
+    #: Amount added to sigma in each interval
+    delta: float = 0.5
+
+
+@dataclasses.dataclass
 class MatchmakingConfig:
     """Settings for matchmaking.
 
@@ -60,11 +75,6 @@ class Config:
     #: Path to the data directory (used to save data like game actions)
     data_dir: pathlib.Path = omegaconf.MISSING
 
-    #: Matchmaking settings
-    matchmaking: MatchmakingConfig = dataclasses.field(
-        default_factory=MatchmakingConfig
-    )
-
     #: File to which monitoring information is written.  Ideally use a in-memory file
     #: (e.g. in /dev/shm).
     monitor_log_path: Optional[pathlib.Path] = None
@@ -73,6 +83,14 @@ class Config:
     registration_key: str = ""
     #: URL of the competition server
     server_url: str = "comprl.example.com"
+
+    #: Matchmaking settings
+    matchmaking: MatchmakingConfig = dataclasses.field(
+        default_factory=MatchmakingConfig
+    )
+
+    #: Score decay settings
+    score_decay: ScoreDecayConfig = dataclasses.field(default_factory=ScoreDecayConfig)
 
 
 _config_file: str | os.PathLike | None = None
@@ -150,5 +168,7 @@ def reload_config():
     new_config = _load_config(_config_file)
     current_config = get_config()
 
-    # update only the matchmaking settings (other settings require a restart)
+    # update only the matchmaking and score decay settings (other settings require a
+    # restart)
     current_config.matchmaking = new_config.matchmaking
+    current_config.score_decay = new_config.score_decay

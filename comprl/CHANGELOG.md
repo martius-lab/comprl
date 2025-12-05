@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `python -m ...`).
 - Matchmaking parameters can now be reloaded from the config file at runtime by sending
   a SIGHUP signal to the server.
+- Optional score decay that gradually increases the sigma rating of inactive users.
 
 
 ## [0.1.0]

@@ -15,7 +15,11 @@ import sys
 import time
 from typing import Type, TYPE_CHECKING
 
+import sqlalchemy as sa
+
 from comprl.server import config, networking
+from comprl.server.data import get_session, User, Game
+from comprl.server.data.sql_backend import DEFAULT_SIGMA
 from comprl.server.managers import GameManager, PlayerManager, MatchmakingManager
 from comprl.server.interfaces import IPlayer, IServer
 
@@ -37,10 +41,13 @@ class Server(IServer):
         self._monitor_log_path = config.get_config().monitor_log_path
         self._monitor_update_interval_s = 10
         self._last_mointor_update = 0
+        self._last_score_decay = 0
 
     def on_start(self):
         """gets called when the server starts"""
         log.info("Server started")
+        # do not directly decay scores on start
+        self._last_score_decay = time.time()
 
     def on_stop(self):
         """gets called when the server stops"""
@@ -98,6 +105,7 @@ class Server(IServer):
     def on_update(self):
         """gets called every update cycle"""
         self.matchmaking.update()
+        self._score_decay()
         self._write_monitoring_data()
 
     def _write_monitoring_data(self):
@@ -140,6 +148,56 @@ class Server(IServer):
                 plog(f"\t{u1} vs {u2}: {score:0.4f}")
 
             plog("\nEND")
+
+    def _score_decay(self) -> None:
+        """Reduce the score of users who didn't play a game recently."""
+        conf = config.get_config()
+        if not conf.score_decay.enabled:
+            return
+
+        # exit if next interval is not yet reached
+        now = time.time()
+        if now - self._last_score_decay < conf.score_decay.interval_minutes * 60:
+            return
+        last_decay = self._last_score_decay
+        self._last_score_decay = now
+
+        cutoff = datetime.datetime.fromtimestamp(last_decay)
+        with get_session() as session:
+            # check if any games have been played since the last interval
+            num_recent_games: int = session.execute(
+                sa.select(sa.func.count())
+                .select_from(Game)
+                .where(Game.start_time >= cutoff)
+            ).scalar()
+
+            # do not decay any scores if no one played any games.
+            if num_recent_games == 0:
+                log.info("Skip score decay (no games played).")
+                return
+
+            # get all users who didn't play in the last interval
+            stmt = sa.select(User).where(
+                ~sa.exists().where(
+                    sa.and_(
+                        Game.start_time >= cutoff,
+                        sa.or_(Game.user1 == User.user_id, Game.user2 == User.user_id),
+                    )
+                )
+            )
+            inactive_users = session.scalars(stmt).all()
+
+            for user in inactive_users:
+                user.sigma = min(user.sigma + conf.score_decay.delta, DEFAULT_SIGMA)
+
+            session.commit()
+
+            log.info(
+                "Decayed scores of %d inactive users since %s: %s",
+                len(inactive_users),
+                cutoff,
+                sorted([u.username for u in inactive_users]),
+            )
 
 
 def load_class(module_path: str, class_name: str):

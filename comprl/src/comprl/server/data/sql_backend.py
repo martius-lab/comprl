@@ -77,6 +77,24 @@ class Game(Base):
     )
 
 
+def get_engine_from_config() -> sa.Engine:
+    """Get engine for database access."""
+    if not get_engine_from_config._engine:
+        db_path = get_config().database_path
+        db_url = f"sqlite:///{db_path}"
+        get_engine_from_config._engine = sa.create_engine(db_url)
+
+    return get_engine_from_config._engine
+
+
+get_engine_from_config._engine = None
+
+
+def get_session() -> sa.orm.Session:
+    """Get session to database that is specified in the config."""
+    return sa.orm.Session(get_engine_from_config())
+
+
 class GameData:
     """Represents a data access object for managing game data in a SQLite database."""
 

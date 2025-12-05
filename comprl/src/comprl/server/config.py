@@ -26,9 +26,10 @@ class ScoreDecayConfig:
     These settings can be reloaded at runtime.
     """
 
-    #: Interval (in minutes) at which scores of inactive users are decayed.  Set to zero
-    #: to disable score decay.
-    interval_minutes: int = 0
+    #: Whether to apply score decay or not
+    enabled: bool = False
+    #: Interval (in minutes) at which scores of inactive users are decayed.
+    interval_minutes: int = 15
     #: Amount added to sigma in each interval
     delta: float = 0.5
 

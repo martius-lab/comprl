@@ -32,6 +32,7 @@ To host your own server with your game read :doc:`Getting-Started`.
    :caption: Topic guides:
 
    ./matchmaking.rst
+   ./score_decay.rst
    ./Project-Concepts.rst
 
 

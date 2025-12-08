@@ -1,4 +1,4 @@
-FROM comprl-hockey-game
+FROM server_image
 
 WORKDIR /agent
 

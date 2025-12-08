@@ -4,5 +4,5 @@
 # So when using this file locally, you also need to call it from the repo's root
 # directory.
 ./comprl
-sphinx
+sphinx<9
 sphinx-immaterial

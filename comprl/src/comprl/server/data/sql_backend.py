@@ -5,6 +5,7 @@ Implementation of the data access objects for managing game and user data in SQL
 from __future__ import annotations
 
 import datetime
+import functools
 import itertools
 import os
 from typing import Optional, Sequence
@@ -77,17 +78,12 @@ class Game(Base):
     )
 
 
+@functools.cache
 def get_engine_from_config() -> sa.Engine:
     """Get engine for database access."""
-    if not get_engine_from_config._engine:
-        db_path = get_config().database_path
-        db_url = f"sqlite:///{db_path}"
-        get_engine_from_config._engine = sa.create_engine(db_url)
-
-    return get_engine_from_config._engine
-
-
-get_engine_from_config._engine = None
+    db_path = get_config().database_path
+    db_url = f"sqlite:///{db_path}"
+    return sa.create_engine(db_url)
 
 
 def get_session() -> sa.orm.Session:

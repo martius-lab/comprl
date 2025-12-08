@@ -6,7 +6,7 @@ import datetime
 import re
 import sys
 from pprint import pprint
-from typing import Any
+from typing import Any, cast
 
 from textual.app import App, ComposeResult
 from textual.widgets import Header, Footer, DataTable, Label
@@ -245,14 +245,14 @@ class ComprlMonitorApp(App):
         parser = Parser()
         parser.parse(lines)
 
-        timestamp: Label = self.query_one("#timestamp")
+        timestamp: Label = cast(Label, self.query_one("#timestamp"))
         timestamp.update(f"Last Update: {parser.data['timestamp']}")
 
-        player_label: Label = self.query_one("#connected_players_label")
+        player_label: Label = cast(Label, self.query_one("#connected_players_label"))
         player_label.update(
             f"Connected Players ({parser.data['num_connected_players']}):"
         )
-        player_table: DataTable = self.query_one("#connected_players")
+        player_table: DataTable = cast(DataTable, self.query_one("#connected_players"))
         player_table.clear(columns=True)
         player_table.add_columns("User", "Player ID")
         player_table.add_rows(
@@ -262,9 +262,9 @@ class ComprlMonitorApp(App):
             ]
         )
 
-        games_label: Label = self.query_one("#games_label")
+        games_label: Label = cast(Label, self.query_one("#games_label"))
         games_label.update(f"Running Games ({parser.data['num_games']}):")
-        games_table: DataTable = self.query_one("#games")
+        games_table: DataTable = cast(DataTable, self.query_one("#games"))
         games_table.clear(columns=True)
         games_table.add_columns("Game", "Player 1", "Player 2")
         games_table.add_rows(
@@ -274,9 +274,9 @@ class ComprlMonitorApp(App):
             ]
         )
 
-        queue_label: Label = self.query_one("#queue_label")
+        queue_label: Label = cast(Label, self.query_one("#queue_label"))
         queue_label.update(f"Players in Queue ({parser.data['num_players_in_queue']}):")
-        queue_table: DataTable = self.query_one("#queue")
+        queue_table: DataTable = cast(DataTable, self.query_one("#queue"))
         queue_table.clear(columns=True)
         queue_table.add_columns("User", "Player ID", "Timestamp")
         queue_table.add_rows(
@@ -286,7 +286,9 @@ class ComprlMonitorApp(App):
             ]
         )
 
-        match_quality_table: DataTable = self.query_one("#match_quality_scores")
+        match_quality_table: DataTable = cast(
+            DataTable, self.query_one("#match_quality_scores")
+        )
         match_quality_table.clear(columns=True)
         match_quality_table.add_columns("User 1", "User 2", "Score")
         match_quality_table.add_rows(
@@ -295,12 +297,12 @@ class ComprlMonitorApp(App):
                     (score["user1"], score["user2"], score["score"])
                     for score in parser.data["match_quality_scores"]
                 ],
-                key=lambda x: x[2],
+                key=lambda x: x[2],  # type: ignore[index]
                 reverse=True,
             )
         )
 
-        lost_players_table: DataTable = self.query_one("#lost_players")
+        lost_players_table: DataTable = cast(DataTable, self.query_one("#lost_players"))
         lost_players_table.clear(columns=True)
         lost_players_table.add_columns("User", "Player ID")
         lost_players_table.add_rows(identify_lost_players(parser.data))

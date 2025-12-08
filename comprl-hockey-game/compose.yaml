@@ -1,6 +1,5 @@
 
 services:
-    image: comprl-hockey-game
   game_server:
     environment:
       # this refers to the path inside the container (see binding added below)
@@ -28,7 +27,6 @@ services:
   # TODO: Is there a way to configure the two bot instances without duplicating
   # everything?
 
-    image: comprl-hockey-bot
   bot_agent_strong:
     environment:
       COMPRL_SERVER_URL: ${COMPRL_SERVER_URL:-game_server}
@@ -38,11 +36,12 @@ services:
     build:
       context: ..
       dockerfile: ./comprl-hockey-game/bot-agent.Dockerfile
+      additional_contexts:
+        server_image: "service:game_server"
     restart: always
     depends_on:
       - game_server
 
-    image: comprl-hockey-bot
   bot_agent_weak:
     environment:
       COMPRL_SERVER_URL: ${COMPRL_SERVER_URL:-game_server}
@@ -52,6 +51,8 @@ services:
     build:
       context: ..
       dockerfile: ./comprl-hockey-game/bot-agent.Dockerfile
+      additional_contexts:
+        server_image: "service:game_server"
     restart: always
     depends_on:
       - game_server

@@ -40,7 +40,7 @@ class Server(IServer):
 
         self._monitor_log_path = config.get_config().monitor_log_path
         self._monitor_update_interval_s = 10
-        self._last_mointor_update = 0
+        self._last_monitor_update = 0.0
         self._last_score_decay = 0.0
 
     def on_start(self):
@@ -114,10 +114,10 @@ class Server(IServer):
 
         # only update every _monitor_update_interval_s
         now = time.time()
-        if now - self._last_mointor_update < self._monitor_update_interval_s:
+        if now - self._last_monitor_update < self._monitor_update_interval_s:
             return
 
-        self._last_mointor_update = now
+        self._last_monitor_update = now
         with open(self._monitor_log_path, "w") as f:
 
             def plog(*args):

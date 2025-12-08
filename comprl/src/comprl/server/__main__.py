@@ -41,7 +41,7 @@ class Server(IServer):
         self._monitor_log_path = config.get_config().monitor_log_path
         self._monitor_update_interval_s = 10
         self._last_mointor_update = 0
-        self._last_score_decay = 0
+        self._last_score_decay = 0.0
 
     def on_start(self):
         """gets called when the server starts"""
@@ -165,7 +165,7 @@ class Server(IServer):
         cutoff = datetime.datetime.fromtimestamp(last_decay)
         with get_session() as session:
             # check if any games have been played since the last interval
-            num_recent_games: int = session.execute(
+            num_recent_games = session.execute(
                 sa.select(sa.func.count())
                 .select_from(Game)
                 .where(Game.start_time >= cutoff)

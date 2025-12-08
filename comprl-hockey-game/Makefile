@@ -5,13 +5,13 @@ build:
 	COMPOSE_BAKE=true docker compose build
 
 up-server:
-	docker compose up -d game_server
+	docker compose up -d gameserver
 
 up-bots:
-	docker compose up -d bot_agent_strong bot_agent_weak
+	docker compose up -d strongbot weakbot
 
 stop-bots:
-	docker compose stop bot_agent_strong bot_agent_weak
+	docker compose stop strongbot weakbot
 
 down:
 	docker compose down
@@ -21,4 +21,4 @@ logs:
 
 # reload configuration
 reload:
-	docker compose kill --signal=SIGHUP game_server
+	docker compose kill --signal=SIGHUP gameserver

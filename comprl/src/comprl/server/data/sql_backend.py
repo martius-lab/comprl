@@ -5,6 +5,7 @@ Implementation of the data access objects for managing game and user data in SQL
 from __future__ import annotations
 
 import datetime
+import functools
 import itertools
 import os
 from typing import Optional, Sequence
@@ -75,6 +76,19 @@ class Game(Base):
     disconnected_: Mapped["User"] = relationship(
         init=False, foreign_keys=[disconnected]
     )
+
+
+@functools.cache
+def get_engine_from_config() -> sa.Engine:
+    """Get engine for database access."""
+    db_path = get_config().database_path
+    db_url = f"sqlite:///{db_path}"
+    return sa.create_engine(db_url)
+
+
+def get_session() -> sa.orm.Session:
+    """Get session to database that is specified in the config."""
+    return sa.orm.Session(get_engine_from_config())
 
 
 class GameData:

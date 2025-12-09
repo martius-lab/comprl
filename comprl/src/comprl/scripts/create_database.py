@@ -38,8 +38,11 @@ def main() -> int:
     db_path = config["database_path"]
 
     if pathlib.Path(db_path).exists():
-        print(f"ERROR: Database '{db_path}' already exists.", file=sys.stderr)
-        return 1
+        key = input(f"Database '{db_path}' already exists.  Continue? [yN] ")
+        if key.lower() != "y":
+            print("Aborting.")
+            return 1
+
     create_database_tables(db_path)
 
     return 0

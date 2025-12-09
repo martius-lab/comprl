@@ -33,7 +33,7 @@ def main() -> int:
     )
 
     with open(args.config, "rb") as f:
-        config = tomllib.load(f)["CompetitionServer"]
+        config = tomllib.load(f)["comprl"]
 
     db_path = config["database_path"]
 

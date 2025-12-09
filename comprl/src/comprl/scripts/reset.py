@@ -47,7 +47,7 @@ if __name__ == "__main__":
     if args.config is not None:
         # load config file
         with open(args.config, "rb") as f:
-            data = tomllib.load(f)["CompetitionServer"]
+            data = tomllib.load(f)["comprl"]
 
     if args.database_path:
         database_path = args.database_path

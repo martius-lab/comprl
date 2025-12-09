@@ -5,7 +5,7 @@ DB_PATH=$(python -c "
 import tomllib
 with open('config.toml', 'rb') as f:
     config = tomllib.load(f)
-print(config['CompetitionServer']['database_path'])
+print(config['comprl']['database_path'])
 ")
 
 if [ -e "${DB_PATH}" ]; then

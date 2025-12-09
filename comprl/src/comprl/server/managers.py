@@ -655,8 +655,8 @@ class MatchmakingManager:
 
                 user1.mu = p1.mu
                 user1.sigma = p1.sigma
-                user1.mu = p1.mu
-                user1.sigma = p1.sigma
+                user2.mu = p2.mu
+                user2.sigma = p2.sigma
 
                 session.commit()
 

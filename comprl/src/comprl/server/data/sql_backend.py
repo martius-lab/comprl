@@ -261,25 +261,6 @@ class UserData:
             return user.mu, user.sigma
 
     @staticmethod
-    def set_matchmaking_parameters(user_id: int, mu: float, sigma: float) -> None:
-        """
-        Sets the matchmaking parameters of a user based on their ID.
-
-        Args:
-            user_id (int): The ID of the user.
-            mu (float): The new mu value of the user.
-            sigma (float): The new sigma value of the user.
-        """
-        with get_session() as session:
-            user = session.get(User, user_id)
-            if user is None:
-                raise ValueError(f"User with ID {user_id} not found.")
-
-            user.mu = mu
-            user.sigma = sigma
-            session.commit()
-
-    @staticmethod
     def reset_all_matchmaking_parameters() -> None:
         """Resets the matchmaking parameters of all users."""
         with get_session() as session:

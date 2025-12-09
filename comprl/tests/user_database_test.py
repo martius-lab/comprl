@@ -1,7 +1,26 @@
 import pytest
 
-from comprl.server.data import UserData, init_engine
+from comprl.server.data import User, UserData, get_session, init_engine
 from comprl.server.data.models import create_database_tables
+
+
+def set_matchmaking_parameters(user_id: int, mu: float, sigma: float) -> None:
+    """
+    Sets the matchmaking parameters of a user based on their ID.
+
+    Args:
+        user_id (int): The ID of the user.
+        mu (float): The new mu value of the user.
+        sigma (float): The new sigma value of the user.
+    """
+    with get_session() as session:
+        user = session.get(User, user_id)
+        if user is None:
+            raise ValueError(f"User with ID {user_id} not found.")
+
+        user.mu = mu
+        user.sigma = sigma
+        session.commit()
 
 
 def test_user_data(tmp_path):
@@ -22,7 +41,7 @@ def test_user_data(tmp_path):
         assert _user.user_id == user_id
         assert _user.username == user[0]
 
-    UserData.set_matchmaking_parameters(user_id=user_ids[1], mu=23.0, sigma=3.0)
+    set_matchmaking_parameters(user_id=user_ids[1], mu=23.0, sigma=3.0)
     mu0, sigma0 = UserData.get_matchmaking_parameters(user_ids[0])
     mu1, sigma1 = UserData.get_matchmaking_parameters(user_ids[1])
 

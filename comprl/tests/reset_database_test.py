@@ -18,27 +18,35 @@ def test_reset(tmp_path):
         user_name="user_1",
         user_password="pw1",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=24.0,
+        user_sigma=9.333,
     )
     userID2 = UserData.add(
         user_name="user_2",
         user_password="pw2",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=23.0,
+        user_sigma=9.0,
     )
     userID3 = UserData.add(
         user_name="user_3",
         user_password="pw3",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=22.0,
+        user_sigma=7.0,
     )
     userID4 = UserData.add(
         user_name="user_4",
         user_password="pw4",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=21.0,
+        user_sigma=7.333,
     )
 
-    UserData.set_matchmaking_parameters(user_id=userID1, mu=24.000, sigma=9.333)
-    UserData.set_matchmaking_parameters(user_id=userID2, mu=23.000, sigma=9.000)
-    UserData.set_matchmaking_parameters(user_id=userID3, mu=22.000, sigma=7.000)
-    UserData.set_matchmaking_parameters(user_id=userID4, mu=21.000, sigma=7.333)
+    # verify users are added correctly
+    mu, sigma = UserData.get_matchmaking_parameters(user_id=userID1)
+    assert pytest.approx(mu) == 24.0
+    assert pytest.approx(sigma) == 9.333
 
     gameID1, gameID2, gameID3 = (
         IDGenerator.generate_game_id(),

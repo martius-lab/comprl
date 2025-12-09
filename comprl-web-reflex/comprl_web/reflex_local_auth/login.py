@@ -12,7 +12,7 @@ from . import routes
 from .local_auth import LocalAuthState, get_session
 
 
-def _verify_password(user_password_hash: bytes, secret: str) -> bool:
+def verify_password(user_password_hash: bytes, secret: str) -> bool:
     """Validate the user's password.
 
     Args:
@@ -60,7 +60,7 @@ class LoginState(LocalAuthState):
             and user.user_id is not None
             # and user.enabled  # FIXME
             and password
-            and _verify_password(user.password, password)
+            and verify_password(user.password, password)
         ):
             # mark the user as logged in
             self._login(user.user_id)

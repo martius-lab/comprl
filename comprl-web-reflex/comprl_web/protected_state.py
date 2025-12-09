@@ -8,12 +8,13 @@ from typing import Sequence
 import reflex as rx
 import sqlalchemy as sa
 
-from comprl.server.data.sql_backend import Game, User, get_ranked_users
+from comprl.server.data.sql_backend import Game, User, get_ranked_users, hash_password
 from comprl.server.data.interfaces import GameEndState
 
 from . import config, reflex_local_auth
 from .reflex_local_auth.local_auth import get_session
-from .reflex_local_auth.registration import validate_username
+from .reflex_local_auth.registration import PASSWORD_MIN_LENGTH, validate_username
+from .reflex_local_auth.login import verify_password
 
 
 @dataclasses.dataclass
@@ -280,39 +281,70 @@ class SettingsState(ProtectedState):
     """State for the settings page."""
 
     username: str = ""
-    status_message: str = ""
-    error_message: str = ""
+    username_status_message: str = ""
+    username_error_message: str = ""
+
+    current_password: str = ""
+    new_password: str = ""
+    confirm_password: str = ""
+    password_status_message: str = ""
+    password_error_message: str = ""
 
     def on_load(self):
         super().on_load()
         self.username = self.authenticated_user.username
-        self.status_message = ""
-        self.error_message = ""
+        self.username_status_message = ""
+        self.username_error_message = ""
+        self.password_status_message = ""
+        self.password_error_message = ""
+
+    def do_logout(self):
+        self.username = ""
+        self.username_status_message = ""
+        self.username_error_message = ""
+        self.current_password = ""
+        self.new_password = ""
+        self.confirm_password = ""
+        self.password_status_message = ""
+        self.password_error_message = ""
+        return reflex_local_auth.LocalAuthState.do_logout
 
     def set_username(self, username: str) -> None:
         """Set the username in state."""
         self.username = username
 
+    def set_current_password(self, current_password: str) -> None:
+        """Set the current password in state."""
+        self.current_password = current_password
+
+    def set_new_password(self, new_password: str) -> None:
+        """Set the new password in state."""
+        self.new_password = new_password
+
+    def set_confirm_password(self, confirm_password: str) -> None:
+        """Set the confirm password in state."""
+        self.confirm_password = confirm_password
+
     def save_username(self, form_data) -> None:
         """Validate and persist a new username."""
         desired_username = form_data["username"].strip()
         self.username = desired_username
-        self.status_message = ""
-        self.error_message = ""
+        self.username_status_message = ""
+        self.username_error_message = ""
 
         if not desired_username:
-            self.error_message = "Username cannot be empty."
+            self.username_error_message = "Username cannot be empty."
             return
 
         if not validate_username(desired_username):
-            self.error_message = (
+            self.username_error_message = (
                 "Username contains invalid characters."
                 " Allowed characters: a-Z, 0-9, _, -."
             )
             return
 
         if desired_username == self.authenticated_user.username:
-            self.status_message = "Username unchanged."
+            self.username_status_message = "Username unchanged."
             return
 
         with get_session() as session:
@@ -321,16 +353,58 @@ class SettingsState(ProtectedState):
             ).one_or_none()
 
             if existing_user:
-                self.error_message = "That username is already taken."
+                self.username_error_message = "That username is already taken."
                 return
 
             current_user = session.get(User, self.authenticated_user.user_id)
             if current_user is None:
-                self.error_message = "Could not find current user."
+                self.username_error_message = "Could not find current user."
                 return
 
             current_user.username = desired_username
             session.add(current_user)
             session.commit()
 
-        self.status_message = "Username updated successfully."
+        self.username_status_message = "Username updated successfully."
+
+    def save_password(self, form_data):
+        """Validate and persist a new password for the current user."""
+        current_password = form_data["current_password"]
+        new_password = form_data["new_password"]
+        confirm_password = form_data["confirm_password"]
+
+        self.password_status_message = ""
+        self.password_error_message = ""
+
+        if not current_password or not new_password or not confirm_password:
+            self.password_error_message = "All fields are required."
+            return
+
+        if len(new_password) < PASSWORD_MIN_LENGTH:
+            self.password_error_message = (
+                f"Password needs to be at least {PASSWORD_MIN_LENGTH} characters long."
+            )
+            return
+
+        if new_password != confirm_password:
+            self.password_error_message = "Passwords do not match."
+            return
+
+        with get_session() as session:
+            user = session.get(User, self.authenticated_user.user_id)
+            if user is None:
+                self.password_error_message = "Could not find current user."
+                return
+
+            if not verify_password(user.password, current_password):
+                self.password_error_message = "Current password is incorrect."
+                return
+
+            user.password = hash_password(new_password)
+            session.add(user)
+            session.commit()
+
+        self.password_status_message = "Password updated successfully."
+        self.current_password = ""
+        self.new_password = ""
+        self.confirm_password = ""

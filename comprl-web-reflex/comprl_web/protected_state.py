@@ -13,6 +13,7 @@ from comprl.server.data.interfaces import GameEndState
 
 from . import config, reflex_local_auth
 from .reflex_local_auth.local_auth import get_session
+from .reflex_local_auth.registration import validate_username
 
 
 @dataclasses.dataclass
@@ -273,3 +274,63 @@ class UserGamesState(ProtectedState):
             raise RuntimeError("Game file not found") from None
 
         return rx.download(filename=game_file_path.name, data=data)
+
+
+class SettingsState(ProtectedState):
+    """State for the settings page."""
+
+    username: str = ""
+    status_message: str = ""
+    error_message: str = ""
+
+    def on_load(self):
+        super().on_load()
+        self.username = self.authenticated_user.username
+        self.status_message = ""
+        self.error_message = ""
+
+    def set_username(self, username: str) -> None:
+        """Set the username in state."""
+        self.username = username
+
+    def save_username(self, form_data) -> None:
+        """Validate and persist a new username."""
+        desired_username = form_data["username"].strip()
+        self.username = desired_username
+        self.status_message = ""
+        self.error_message = ""
+
+        if not desired_username:
+            self.error_message = "Username cannot be empty."
+            return
+
+        if not validate_username(desired_username):
+            self.error_message = (
+                "Username contains invalid characters."
+                " Allowed characters: a-Z, 0-9, _, -."
+            )
+            return
+
+        if desired_username == self.authenticated_user.username:
+            self.status_message = "Username unchanged."
+            return
+
+        with get_session() as session:
+            existing_user = session.scalars(
+                sa.select(User).where(User.username == desired_username)
+            ).one_or_none()
+
+            if existing_user:
+                self.error_message = "That username is already taken."
+                return
+
+            current_user = session.get(User, self.authenticated_user.user_id)
+            if current_user is None:
+                self.error_message = "Could not find current user."
+                return
+
+            current_user.username = desired_username
+            session.add(current_user)
+            session.commit()
+
+        self.status_message = "Username updated successfully."

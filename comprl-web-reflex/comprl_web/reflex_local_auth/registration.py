@@ -26,6 +26,11 @@ def generate_access_token() -> str:
     return str(IDGenerator.generate_player_id())
 
 
+def validate_username(username: str) -> bool:
+    """Validate the username against allowed characters."""
+    return re.match(r"^[a-zA-Z0-9_-]+$", username) is not None
+
+
 class RegistrationState(LocalAuthState):
     """Handle registration form submission and redirect to login page afterwards."""
 
@@ -44,7 +49,7 @@ class RegistrationState(LocalAuthState):
             self.error_message = "Username cannot be empty"
             return rx.set_focus("username")
 
-        if not re.match(r"^[a-zA-Z0-9_-]+$", username):
+        if not validate_username(username):
             self.error_message = (
                 "Username contains invalid characters."
                 "  Allowed characters are: a-Z0-9_-"

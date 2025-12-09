@@ -1,6 +1,7 @@
 from .models import (
     User as User,
     Game as Game,
+    RatingChangeLog as RatingChangeLog,
     get_one as get_one,
 )
 from .sql_backend import (

@@ -15,7 +15,13 @@ import numpy as np
 
 from comprl.server.interfaces import IGame, IPlayer
 from comprl.shared.types import GameID, PlayerID
-from comprl.server.data import GameData, User, UserData, get_session, get_one
+from comprl.server.data import (
+    GameData,
+    User,
+    UserData,
+    get_one,
+    get_session,
+)
 from comprl.server.data.interfaces import UserRole, GameEndState
 from comprl.server.config import get_config
 
@@ -653,10 +659,20 @@ class MatchmakingManager:
                     scores=[result.score_user_1, result.score_user_2],
                 )
 
-                user1.mu = p1.mu
-                user1.sigma = p1.sigma
-                user2.mu = p2.mu
-                user2.sigma = p2.sigma
+                UserData.update_rating(
+                    session,
+                    user=user1,
+                    mu=p1.mu,
+                    sigma=p1.sigma,
+                    game_id=result.game_id,
+                )
+                UserData.update_rating(
+                    session,
+                    user=user2,
+                    mu=p2.mu,
+                    sigma=p2.sigma,
+                    game_id=result.game_id,
+                )
 
                 session.commit()
 

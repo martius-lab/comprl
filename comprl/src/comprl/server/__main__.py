@@ -18,7 +18,7 @@ from typing import Type, TYPE_CHECKING
 import sqlalchemy as sa
 
 from comprl.server import config, networking
-from comprl.server.data import get_session, init_engine, User, Game
+from comprl.server.data import get_session, init_engine, User, Game, UserData
 from comprl.server.data.models import DEFAULT_SIGMA
 from comprl.server.managers import GameManager, PlayerManager, MatchmakingManager
 from comprl.server.interfaces import IPlayer, IServer
@@ -176,19 +176,26 @@ class Server(IServer):
                 log.info("Skip score decay (no games played).")
                 return
 
-            # get all users who didn't play in the last interval
+            # get all users who didn't play in the last interval and who aren't at the
+            # maximum sigma already
             stmt = sa.select(User).where(
+                User.sigma < DEFAULT_SIGMA,
                 ~sa.exists().where(
-                    sa.and_(
-                        Game.start_time >= cutoff,
-                        sa.or_(Game.user1 == User.user_id, Game.user2 == User.user_id),
-                    )
-                )
+                    Game.start_time >= cutoff,
+                    sa.or_(Game.user1 == User.user_id, Game.user2 == User.user_id),
+                ),
             )
             inactive_users = session.scalars(stmt).all()
 
             for user in inactive_users:
-                user.sigma = min(user.sigma + conf.score_decay.delta, DEFAULT_SIGMA)
+                new_sigma = min(user.sigma + conf.score_decay.delta, DEFAULT_SIGMA)
+                UserData.update_rating(
+                    session,
+                    user=user,
+                    mu=user.mu,
+                    sigma=new_sigma,
+                    game_id=None,
+                )
 
             session.commit()
 

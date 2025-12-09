@@ -10,10 +10,10 @@ def links() -> rx.Component:
     """Render the links for the demo."""
     return rx.fragment(
         rx.stack(
-            rx.link("Home", href="/"),
             rx.link("User Info", href="/dashboard"),
             rx.link("Leaderboard", href="/leaderboard"),
             rx.link("Games", href="/games"),
+            rx.link("Settings", href="/settings"),
             rx.cond(
                 LocalAuthState.is_authenticated,
                 rx.link(

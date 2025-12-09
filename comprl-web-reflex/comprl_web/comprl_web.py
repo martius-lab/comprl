@@ -4,7 +4,7 @@ import reflex as rx
 
 from .components import standard_layout
 from . import config, reflex_local_auth
-from .pages import user_dashboard, leaderboard, games
+from .pages import user_dashboard, leaderboard, games, settings
 from .reflex_local_auth.local_auth import LocalAuthState
 from .protected_state import UserDashboardState
 
@@ -33,7 +33,7 @@ def _load_comprl_configuration() -> None:
     print("Configuration loaded.")
 
 
-@rx.page()
+@rx.page(on_load=rx.redirect("/dashboard"))
 def index() -> rx.Component:
     """Render the index page.
 
@@ -79,6 +79,11 @@ app.add_page(
     games.game_overview,
     route="/games",
     title="Games",
+)
+app.add_page(
+    settings.settings,
+    route="/settings",
+    title="User Settings",
 )
 
 app.register_lifespan_task(_load_comprl_configuration)

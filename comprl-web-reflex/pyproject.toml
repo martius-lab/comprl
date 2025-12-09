@@ -15,6 +15,13 @@ dependencies = [
     "bcrypt",
 ]
 
+[dependency-groups]
+lsp = [
+    "pylsp-rope>=0.1.17",
+    "python-lsp-ruff>=2.2.2",
+    "python-lsp-server>=1.12.2",
+]
+
 [tool.uv.sources]
 comprl = { path = "../comprl" }
 

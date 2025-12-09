@@ -1,6 +1,6 @@
 """script to reset the game database and the mu and sigma in the user database"""
 
-from comprl.server.data import UserData, GameData
+from comprl.server.data import UserData, GameData, init_engine
 import logging
 import argparse
 import os
@@ -60,14 +60,16 @@ if __name__ == "__main__":
         print(f"Database file {database_path} does not exist.")
         sys.exit(1)
 
+    init_engine(database_path)
+
     user_answer = input(
         "Are you sure you want to delete the games table and "
         "reset the matchmaking parameters? (Y/N)"
     )
 
     if user_answer.lower() == "y":
-        game_data = GameData(database_path)
+        game_data = GameData()
         reset_games(game_data)
 
-        user_data = UserData(database_path)
+        user_data = UserData()
         reset_elo(user_data)

@@ -1,6 +1,6 @@
 import pytest
 
-from comprl.server.data import UserData, GameData
+from comprl.server.data import UserData, GameData, init_engine
 from comprl.server.util import IDGenerator
 from comprl.server.data.interfaces import GameEndState, GameResult
 from comprl.server.data.models import create_database_tables
@@ -10,9 +10,10 @@ import comprl.scripts.reset as reset
 def test_reset(tmp_path):
     db_path = tmp_path / "database.db"
     create_database_tables(db_path)
+    init_engine(db_path)
 
-    user_data = UserData(db_path)
-    game_data = GameData(db_path)
+    user_data = UserData()
+    game_data = GameData()
 
     # add test data
 

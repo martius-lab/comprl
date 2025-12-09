@@ -1,14 +1,14 @@
 import pytest
 
-from comprl.server.data import UserData
+from comprl.server.data import UserData, init_engine
 from comprl.server.data.models import create_database_tables
 
 
 def test_user_data(tmp_path):
     db_file = tmp_path / "database.db"
     create_database_tables(db_file)
-
-    user_data = UserData(db_file)
+    init_engine(db_file)
+    user_data = UserData()
 
     # add test users to database and collect IDs
     users = [("player_1", "token1"), ("player_2", "token2"), ("player_3", "token3")]

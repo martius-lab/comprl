@@ -18,7 +18,7 @@ from typing import Type, TYPE_CHECKING
 import sqlalchemy as sa
 
 from comprl.server import config, networking
-from comprl.server.data import get_session, User, Game
+from comprl.server.data import get_session, init_engine, User, Game
 from comprl.server.data.models import DEFAULT_SIGMA
 from comprl.server.managers import GameManager, PlayerManager, MatchmakingManager
 from comprl.server.interfaces import IPlayer, IServer
@@ -279,6 +279,8 @@ def main() -> int:
     if not conf.database_path.is_file():
         log.error("database_path '%s' not found or not a file", conf.database_path)
         return 1
+
+    init_engine(conf.database_path)
 
     signal.signal(signal.SIGHUP, signal_reload_config)
 

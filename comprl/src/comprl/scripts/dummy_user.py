@@ -1,6 +1,6 @@
 """Script to add dummy user to the user database."""
 
-from comprl.server.data import UserData
+from comprl.server.data import UserData, init_engine
 import logging
 import argparse
 
@@ -46,5 +46,6 @@ if __name__ == "__main__":
     else:
         parser.error("Need to provide either --config or --database-path")
 
-    user_data = UserData(database_path)
+    init_engine(database_path)
+    user_data = UserData()
     insert_users()

@@ -4,7 +4,6 @@ Implementation of the data access objects for managing game and user data in SQL
 
 from __future__ import annotations
 
-import functools
 import itertools
 import os
 from typing import Sequence
@@ -12,32 +11,29 @@ from typing import Sequence
 import bcrypt
 import sqlalchemy as sa
 
-from comprl.server.config import get_config
 from comprl.server.data.interfaces import GameEndState, GameResult, UserRole
 from comprl.server.data.models import Game, User, DEFAULT_MU, DEFAULT_SIGMA
 
 
-@functools.cache
-def get_engine_from_config() -> sa.Engine:
-    """Get engine for database access."""
-    db_path = get_config().database_path
-    db_url = f"sqlite:///{db_path}"
-    return sa.create_engine(db_url)
+_engine: sa.Engine | None = None
+
+
+def init_engine(db_path: str | os.PathLike):
+    """Create global engine using the given path to the database file."""
+    global _engine
+    _engine = sa.create_engine(f"sqlite:///{db_path}")
 
 
 def get_session() -> sa.orm.Session:
     """Get session to database that is specified in the config."""
-    return sa.orm.Session(get_engine_from_config())
+    if not _engine:
+        msg = "No engine set.  Call `init_engine` first."
+        raise RuntimeError(msg)
+    return sa.orm.Session(_engine)
 
 
 class GameData:
     """Represents a data access object for managing game data in a SQLite database."""
-
-    def __init__(self, db_path: str | os.PathLike | None = None) -> None:
-        if db_path is None:
-            self.engine = get_engine_from_config()
-        else:
-            self.engine = sa.create_engine(f"sqlite:///{db_path}")
 
     def add(self, game_result: GameResult) -> None:
         """
@@ -47,7 +43,7 @@ class GameData:
             db_path: Path to the sqlite database.
 
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             game = Game(
                 game_id=str(game_result.game_id),
                 user1=game_result.user1_id,
@@ -69,12 +65,12 @@ class GameData:
         Returns:
             list[Game]: A list of all games.
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             return session.scalars(sa.select(Game)).all()
 
     def delete_all(self) -> None:
         """Delete all games."""
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             session.query(Game).delete()
             session.commit()
 
@@ -179,18 +175,6 @@ def get_user_pair_statistics(
 class UserData:
     """Represents a data access object for managing game data in a SQLite database."""
 
-    def __init__(self, db_path: str | os.PathLike | None = None) -> None:
-        """
-        Initializes a new instance of the UserData class.
-
-        Args:
-            db_path: Path to the sqlite database.
-        """
-        if db_path is None:
-            self.engine = get_engine_from_config()
-        else:
-            self.engine = sa.create_engine(f"sqlite:///{db_path}")
-
     def add(
         self,
         user_name: str,
@@ -215,7 +199,7 @@ class UserData:
         Returns:
             int: The ID of the newly added user.
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             user = User(
                 username=user_name,
                 password=hash_password(user_password),
@@ -232,7 +216,7 @@ class UserData:
 
     def get(self, user_id: int) -> User:
         """Get user with the specified ID."""
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             user = session.get(User, user_id)
 
         if user is None:
@@ -249,7 +233,7 @@ class UserData:
         Returns:
             User instance or None if no user with the given token is found.
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             user = session.query(User).filter(User.token == access_token).first()
             return user
 
@@ -263,7 +247,7 @@ class UserData:
         Returns:
             tuple[float, float]: The mu and sigma values of the user.
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             user = session.get(User, user_id)
             if user is None:
                 raise ValueError(f"User with ID {user_id} not found.")
@@ -279,7 +263,7 @@ class UserData:
             mu (float): The new mu value of the user.
             sigma (float): The new sigma value of the user.
         """
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             user = session.get(User, user_id)
             if user is None:
                 raise ValueError(f"User with ID {user_id} not found.")
@@ -290,13 +274,13 @@ class UserData:
 
     def reset_all_matchmaking_parameters(self) -> None:
         """Resets the matchmaking parameters of all users."""
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})
             session.commit()
 
     def get_ranked_users(self) -> Sequence[User]:
         """Get all users ordered by their score."""
-        with sa.orm.Session(self.engine) as session:
+        with get_session() as session:
             return get_ranked_users(session)
 
 

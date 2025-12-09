@@ -18,6 +18,7 @@ except KeyError:
 config = CustomConfig(
     app_name="comprl_web",
     telemetry_enabled=False,
-    comprl_config_path=comprl_config_path,
+    show_built_with_reflex=False,
     plugins=[rx.plugins.SitemapPlugin()],
+    comprl_config_path=comprl_config_path,
 )

@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Matchmaking parameters can now be reloaded from the config file at runtime by sending
   a SIGHUP signal to the server.
 - Optional score decay that gradually increases the sigma rating of inactive users.
+- Log all rating changes of users (after games or due to score decay).  This may be
+  interesting for analysis, e.g. how much the leaderboard fluctuates.
 
 
 ## [0.1.0]

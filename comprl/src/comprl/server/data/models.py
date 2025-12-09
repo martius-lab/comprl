@@ -69,6 +69,24 @@ class Game(Base):
     )
 
 
+class RatingChangeLog(Base):
+    """Log of score changes."""
+
+    __tablename__ = "rating_change_log"
+
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
+    timestamp: Mapped[datetime.datetime] = mapped_column(sa.DateTime)
+
+    user_id: Mapped[int] = mapped_column(sa.ForeignKey("users.user_id"))
+    user_: Mapped["User"] = relationship(init=False, foreign_keys=[user_id])
+
+    game_id: Mapped[int | None] = mapped_column(sa.ForeignKey("games.id"))
+    game_: Mapped["Game"] = relationship(init=False, foreign_keys=[game_id])
+
+    new_mu: Mapped[float]
+    new_sigma: Mapped[float]
+
+
 def create_database_tables(db_path: str) -> None:
     """Create the database tables in the given SQLite database."""
     engine = sa.create_engine(f"sqlite:///{db_path}")

@@ -6,13 +6,22 @@ from __future__ import annotations
 
 import itertools
 import os
+from datetime import datetime
 from typing import Sequence
 
 import bcrypt
 import sqlalchemy as sa
 
 from comprl.server.data.interfaces import GameEndState, GameResult, UserRole
-from comprl.server.data.models import Game, User, DEFAULT_MU, DEFAULT_SIGMA
+from comprl.server.data.models import (
+    Game,
+    RatingChangeLog,
+    User,
+    DEFAULT_MU,
+    DEFAULT_SIGMA,
+    get_one,
+)
+from comprl.shared.types import GameID
 
 
 _engine: sa.Engine | None = None
@@ -243,7 +252,7 @@ class UserData:
             return user
 
     @staticmethod
-    def get_matchmaking_parameters(user_id: int) -> tuple[float, float]:
+    def get_rating(user_id: int) -> tuple[float, float]:
         """
         Retrieves the matchmaking parameters of a user based on their ID.
 
@@ -261,7 +270,54 @@ class UserData:
             return user.mu, user.sigma
 
     @staticmethod
-    def reset_all_matchmaking_parameters() -> None:
+    def update_rating(
+        session: sa.orm.Session,
+        *,
+        user: int | User,
+        mu: float,
+        sigma: float,
+        game_id: GameID | None,
+    ) -> None:
+        """Update the rating of a user.
+
+        Updates the my and sigma rating of a user to the new values.  Also logs the
+        change in the score change log table.
+
+        Args:
+            session: The database session.
+            user: The ID of the user or an already loaded user instance.
+            mu: The new mu value.
+            sigma: The new sigma value.
+            game_id: The ID of the game that caused the rating change (if any).
+        """
+        if isinstance(user, User):
+            _user = user
+        else:
+            _user = get_one(session, User, user)
+
+        _user.mu = mu
+        _user.sigma = sigma
+
+        if game_id is not None:
+            # need to get the database ID of the game (not the UUID one)
+            game_db_id = session.execute(
+                sa.select(Game.id).where(Game.game_id == str(game_id))
+            ).scalar_one()
+        else:
+            game_db_id = None
+
+        session.add(
+            RatingChangeLog(
+                timestamp=datetime.now(),
+                user_id=_user.user_id,
+                game_id=game_db_id,
+                new_mu=mu,
+                new_sigma=sigma,
+            )
+        )
+
+    @staticmethod
+    def reset_all_ratings() -> None:
         """Resets the matchmaking parameters of all users."""
         with get_session() as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})

@@ -77,7 +77,7 @@ class GameManager:
 
             game_result = game.get_result()
             if game_result is not None:
-                GameData(get_config().database_path).add(game_result)
+                GameData().add(game_result)
             else:
                 self._log.error("Game had no valid result | game_id=%s", game.id)
             del self.games[game.id]
@@ -154,7 +154,7 @@ class PlayerManager:
         if player is None:
             return False
 
-        user = UserData(get_config().database_path).get_user_by_token(token)
+        user = UserData().get_user_by_token(token)
 
         if user is not None:
             # add player to authenticated players
@@ -198,7 +198,7 @@ class PlayerManager:
         Returns:
             Optional[User]: The user object if found, None otherwise.
         """
-        return UserData(get_config().database_path).get(user_id)
+        return UserData().get(user_id)
 
     def get_user_id(self, player_id: PlayerID) -> int | None:
         """
@@ -267,7 +267,7 @@ class PlayerManager:
         Returns:
             tuple[float, float]: The mu and sigma values of the user.
         """
-        return UserData(get_config().database_path).get_matchmaking_parameters(user_id)
+        return UserData().get_matchmaking_parameters(user_id)
 
     def update_matchmaking_parameters(
         self, user_id: int, new_mu: float, new_sigma: float
@@ -280,9 +280,7 @@ class PlayerManager:
             new_mu (float): The new mu value of the user.
             new_sigma (float): The new sigma value of the user.
         """
-        UserData(get_config().database_path).set_matchmaking_parameters(
-            user_id, new_mu, new_sigma
-        )
+        UserData().set_matchmaking_parameters(user_id, new_mu, new_sigma)
 
 
 # Type of a player entry in the queue, containing the player ID, user ID, mu, sigma

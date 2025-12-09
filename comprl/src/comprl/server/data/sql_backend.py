@@ -33,9 +33,11 @@ def get_session() -> sa.orm.Session:
 class GameData:
     """Represents a data access object for managing game data in a SQLite database."""
 
-    def __init__(self, db_path: str | os.PathLike) -> None:
-        db_url = f"sqlite:///{db_path}"
-        self.engine = sa.create_engine(db_url)
+    def __init__(self, db_path: str | os.PathLike | None = None) -> None:
+        if db_path is None:
+            self.engine = get_engine_from_config()
+        else:
+            self.engine = sa.create_engine(f"sqlite:///{db_path}")
 
     def add(self, game_result: GameResult) -> None:
         """
@@ -185,11 +187,9 @@ class UserData:
             db_path: Path to the sqlite database.
         """
         if db_path is None:
-            db_path = get_config().database_path
-
-        # connect to the database
-        db_url = f"sqlite:///{db_path}"
-        self.engine = sa.create_engine(db_url)
+            self.engine = get_engine_from_config()
+        else:
+            self.engine = sa.create_engine(f"sqlite:///{db_path}")
 
     def add(
         self,

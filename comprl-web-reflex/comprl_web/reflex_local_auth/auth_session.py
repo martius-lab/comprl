@@ -1,6 +1,6 @@
 import datetime
 
-from comprl.server.data.sql_backend import Base
+from comprl.server.data.models import Base
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column

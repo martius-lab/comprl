@@ -6,7 +6,7 @@ import datetime
 from typing import Optional
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 
 DEFAULT_MU = 25.0
@@ -73,3 +73,13 @@ def create_database_tables(db_path: str) -> None:
     """Create the database tables in the given SQLite database."""
     engine = sa.create_engine(f"sqlite:///{db_path}")
     Base.metadata.create_all(engine)
+
+
+def get_one(session: Session, cls: type[Base], ident):
+    """Get one entry from the database or raise ValueError if not found."""
+    # This function can be removed once
+    # https://github.com/sqlalchemy/sqlalchemy/discussions/10291 is implemented.
+    obj = session.get(cls, ident)
+    if obj is None:
+        raise ValueError(f"No entry of type {cls} with ID {ident} not found.")
+    return obj

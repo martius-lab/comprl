@@ -1,6 +1,7 @@
 from .models import (
     User as User,
     Game as Game,
+    get_one as get_one,
 )
 from .sql_backend import (
     GameData as GameData,

@@ -252,7 +252,7 @@ class UserData:
             return user
 
     @staticmethod
-    def get_matchmaking_parameters(user_id: int) -> tuple[float, float]:
+    def get_rating(user_id: int) -> tuple[float, float]:
         """
         Retrieves the matchmaking parameters of a user based on their ID.
 
@@ -317,7 +317,7 @@ class UserData:
         )
 
     @staticmethod
-    def reset_all_matchmaking_parameters() -> None:
+    def reset_all_ratings() -> None:
         """Resets the matchmaking parameters of all users."""
         with get_session() as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})

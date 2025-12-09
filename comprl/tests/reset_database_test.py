@@ -44,7 +44,7 @@ def test_reset(tmp_path):
     )
 
     # verify users are added correctly
-    mu, sigma = UserData.get_matchmaking_parameters(user_id=userID1)
+    mu, sigma = UserData.get_rating(user_id=userID1)
     assert pytest.approx(mu) == 24.0
     assert pytest.approx(sigma) == 9.333
 
@@ -79,7 +79,7 @@ def test_reset(tmp_path):
 
     # test
     for user_id in (userID1, userID2, userID3, userID4):
-        mu, sigma = UserData.get_matchmaking_parameters(user_id=user_id)
+        mu, sigma = UserData.get_rating(user_id=user_id)
         assert pytest.approx(mu) == 25.0, f"user_id: {user_id}"
         assert pytest.approx(sigma) == 8.333, f"user_id: {user_id}"
 

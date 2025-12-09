@@ -25,7 +25,7 @@ def reset_games():
 
 def reset_elo():
     """reset the elo in the user database: set mu=25.000 and sigma=8.333"""
-    UserData.reset_all_matchmaking_parameters()
+    UserData.reset_all_ratings()
     logging.info(
         "The matchmaking parameters have been reset to default values for all users."
     )

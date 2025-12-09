@@ -42,8 +42,8 @@ def test_user_data(tmp_path):
         assert _user.username == user[0]
 
     set_matchmaking_parameters(user_id=user_ids[1], mu=23.0, sigma=3.0)
-    mu0, sigma0 = UserData.get_matchmaking_parameters(user_ids[0])
-    mu1, sigma1 = UserData.get_matchmaking_parameters(user_ids[1])
+    mu0, sigma0 = UserData.get_rating(user_ids[0])
+    mu1, sigma1 = UserData.get_rating(user_ids[1])
 
     # user0 was unmodified, so here the default values should be returned
     assert pytest.approx(mu0) == 25.0

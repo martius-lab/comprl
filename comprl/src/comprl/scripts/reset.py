@@ -17,15 +17,15 @@ except ImportError:
 logging.basicConfig(level=logging.DEBUG)
 
 
-def reset_games(game_data: GameData):
+def reset_games():
     """deletes the game table"""
-    game_data.delete_all()
+    GameData.delete_all()
     logging.info("The games table has been deleted.")
 
 
-def reset_elo(user_data: UserData):
+def reset_elo():
     """reset the elo in the user database: set mu=25.000 and sigma=8.333"""
-    user_data.reset_all_matchmaking_parameters()
+    UserData.reset_all_matchmaking_parameters()
     logging.info(
         "The matchmaking parameters have been reset to default values for all users."
     )
@@ -68,8 +68,5 @@ if __name__ == "__main__":
     )
 
     if user_answer.lower() == "y":
-        game_data = GameData()
-        reset_games(game_data)
-
-        user_data = UserData()
-        reset_elo(user_data)
+        reset_games()
+        reset_elo()

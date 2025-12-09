@@ -136,10 +136,9 @@ def add(
 ) -> None:
     """Create a new user."""
     init_engine(database)
-    user_data = UserData()
 
     token = str(uuid.uuid4())
-    user_data.add(
+    UserData.add(
         user_name=username, user_password=password, user_token=token, user_role=role
     )
 

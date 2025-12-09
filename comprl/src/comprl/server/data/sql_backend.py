@@ -33,9 +33,10 @@ def get_session() -> sa.orm.Session:
 
 
 class GameData:
-    """Represents a data access object for managing game data in a SQLite database."""
+    """Bundles several functions to access/modify game data in the database."""
 
-    def add(self, game_result: GameResult) -> None:
+    @staticmethod
+    def add(game_result: GameResult) -> None:
         """
         Adds a game result to the database.
 
@@ -58,7 +59,8 @@ class GameData:
             session.add(game)
             session.commit()
 
-    def get_all(self) -> Sequence[Game]:
+    @staticmethod
+    def get_all() -> Sequence[Game]:
         """
         Retrieves all games from the database.
 
@@ -68,7 +70,8 @@ class GameData:
         with get_session() as session:
             return session.scalars(sa.select(Game)).all()
 
-    def delete_all(self) -> None:
+    @staticmethod
+    def delete_all() -> None:
         """Delete all games."""
         with get_session() as session:
             session.query(Game).delete()
@@ -173,10 +176,10 @@ def get_user_pair_statistics(
 
 
 class UserData:
-    """Represents a data access object for managing game data in a SQLite database."""
+    """Bundles several functions to access/modify user data in the database."""
 
+    @staticmethod
     def add(
-        self,
         user_name: str,
         user_password: str,
         user_token: str,
@@ -214,7 +217,8 @@ class UserData:
 
             return user.user_id
 
-    def get(self, user_id: int) -> User:
+    @staticmethod
+    def get(user_id: int) -> User:
         """Get user with the specified ID."""
         with get_session() as session:
             user = session.get(User, user_id)
@@ -224,7 +228,8 @@ class UserData:
 
         return user
 
-    def get_user_by_token(self, access_token: str) -> User | None:
+    @staticmethod
+    def get_user_by_token(access_token: str) -> User | None:
         """Retrieves a user based on their access token.
 
         Args:
@@ -237,7 +242,8 @@ class UserData:
             user = session.query(User).filter(User.token == access_token).first()
             return user
 
-    def get_matchmaking_parameters(self, user_id: int) -> tuple[float, float]:
+    @staticmethod
+    def get_matchmaking_parameters(user_id: int) -> tuple[float, float]:
         """
         Retrieves the matchmaking parameters of a user based on their ID.
 
@@ -254,7 +260,8 @@ class UserData:
 
             return user.mu, user.sigma
 
-    def set_matchmaking_parameters(self, user_id: int, mu: float, sigma: float) -> None:
+    @staticmethod
+    def set_matchmaking_parameters(user_id: int, mu: float, sigma: float) -> None:
         """
         Sets the matchmaking parameters of a user based on their ID.
 
@@ -272,13 +279,15 @@ class UserData:
             user.sigma = sigma
             session.commit()
 
-    def reset_all_matchmaking_parameters(self) -> None:
+    @staticmethod
+    def reset_all_matchmaking_parameters() -> None:
         """Resets the matchmaking parameters of all users."""
         with get_session() as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})
             session.commit()
 
-    def get_ranked_users(self) -> Sequence[User]:
+    @staticmethod
+    def get_ranked_users() -> Sequence[User]:
         """Get all users ordered by their score."""
         with get_session() as session:
             return get_ranked_users(session)

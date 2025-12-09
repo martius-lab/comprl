@@ -10,9 +10,9 @@ Before running, install the requirements:
 pip install -r requirements.txt
 ```
 
-And initialise the database:
+And initialise the database, specify the path in `config.toml` and run:
 ```
-python3 -m comprl.scripts.create_database ./config.toml
+./prepare_database.sh
 ```
 
 

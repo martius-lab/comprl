@@ -1,46 +1,52 @@
 import pytest
 
-from comprl.server.data import UserData, GameData
+from comprl.server.data import UserData, GameData, init_engine
 from comprl.server.util import IDGenerator
 from comprl.server.data.interfaces import GameEndState, GameResult
-from comprl.server.data.sql_backend import create_database_tables
+from comprl.server.data.models import create_database_tables
 import comprl.scripts.reset as reset
 
 
 def test_reset(tmp_path):
     db_path = tmp_path / "database.db"
     create_database_tables(db_path)
-
-    user_data = UserData(db_path)
-    game_data = GameData(db_path)
+    init_engine(db_path)
 
     # add test data
 
-    userID1 = user_data.add(
+    userID1 = UserData.add(
         user_name="user_1",
         user_password="pw1",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=24.0,
+        user_sigma=9.333,
     )
-    userID2 = user_data.add(
+    userID2 = UserData.add(
         user_name="user_2",
         user_password="pw2",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=23.0,
+        user_sigma=9.0,
     )
-    userID3 = user_data.add(
+    userID3 = UserData.add(
         user_name="user_3",
         user_password="pw3",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=22.0,
+        user_sigma=7.0,
     )
-    userID4 = user_data.add(
+    userID4 = UserData.add(
         user_name="user_4",
         user_password="pw4",
         user_token=str(IDGenerator.generate_player_id()),
+        user_mu=21.0,
+        user_sigma=7.333,
     )
 
-    user_data.set_matchmaking_parameters(user_id=userID1, mu=24.000, sigma=9.333)
-    user_data.set_matchmaking_parameters(user_id=userID2, mu=23.000, sigma=9.000)
-    user_data.set_matchmaking_parameters(user_id=userID3, mu=22.000, sigma=7.000)
-    user_data.set_matchmaking_parameters(user_id=userID4, mu=21.000, sigma=7.333)
+    # verify users are added correctly
+    mu, sigma = UserData.get_matchmaking_parameters(user_id=userID1)
+    assert pytest.approx(mu) == 24.0
+    assert pytest.approx(sigma) == 9.333
 
     gameID1, gameID2, gameID3 = (
         IDGenerator.generate_game_id(),
@@ -61,20 +67,20 @@ def test_reset(tmp_path):
         score_user_2=7,
         end_state=GameEndState.DISCONNECTED.value,
     )
-    game_data.add(game_result=game1)
-    game_data.add(game_result=game2)
-    game_data.add(game_result=game3)
+    GameData.add(game_result=game1)
+    GameData.add(game_result=game2)
+    GameData.add(game_result=game3)
 
-    assert len(game_data.get_all()) == 3
+    assert len(GameData.get_all()) == 3
 
     # reset
-    reset.reset_games(game_data=game_data)
-    reset.reset_elo(user_data=user_data)
+    reset.reset_games()
+    reset.reset_elo()
 
     # test
     for user_id in (userID1, userID2, userID3, userID4):
-        mu, sigma = user_data.get_matchmaking_parameters(user_id=user_id)
+        mu, sigma = UserData.get_matchmaking_parameters(user_id=user_id)
         assert pytest.approx(mu) == 25.0, f"user_id: {user_id}"
         assert pytest.approx(sigma) == 8.333, f"user_id: {user_id}"
 
-    assert len(game_data.get_all()) == 0
+    assert len(GameData.get_all()) == 0

@@ -1,6 +1,6 @@
 """script to reset the game database and the mu and sigma in the user database"""
 
-from comprl.server.data import UserData, GameData
+from comprl.server.data import UserData, GameData, init_engine
 import logging
 import argparse
 import os
@@ -17,15 +17,15 @@ except ImportError:
 logging.basicConfig(level=logging.DEBUG)
 
 
-def reset_games(game_data: GameData):
+def reset_games():
     """deletes the game table"""
-    game_data.delete_all()
+    GameData.delete_all()
     logging.info("The games table has been deleted.")
 
 
-def reset_elo(user_data: UserData):
+def reset_elo():
     """reset the elo in the user database: set mu=25.000 and sigma=8.333"""
-    user_data.reset_all_matchmaking_parameters()
+    UserData.reset_all_matchmaking_parameters()
     logging.info(
         "The matchmaking parameters have been reset to default values for all users."
     )
@@ -60,14 +60,13 @@ if __name__ == "__main__":
         print(f"Database file {database_path} does not exist.")
         sys.exit(1)
 
+    init_engine(database_path)
+
     user_answer = input(
         "Are you sure you want to delete the games table and "
         "reset the matchmaking parameters? (Y/N)"
     )
 
     if user_answer.lower() == "y":
-        game_data = GameData(database_path)
-        reset_games(game_data)
-
-        user_data = UserData(database_path)
-        reset_elo(user_data)
+        reset_games()
+        reset_elo()

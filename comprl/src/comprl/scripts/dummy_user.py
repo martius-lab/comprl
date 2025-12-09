@@ -1,6 +1,6 @@
 """Script to add dummy user to the user database."""
 
-from comprl.server.data import UserData
+from comprl.server.data import UserData, init_engine
 import logging
 import argparse
 
@@ -17,10 +17,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 def insert_users():
     """inserts four dummy user to the user database"""
-    user_data.add(user_name="test1", user_password="password1", user_token="token1")
-    user_data.add(user_name="test2", user_password="password2", user_token="token2")
-    user_data.add(user_name="test3", user_password="password3", user_token="token3")
-    user_data.add(user_name="test4", user_password="password4", user_token="token4")
+    UserData.add(user_name="test1", user_password="password1", user_token="token1")
+    UserData.add(user_name="test2", user_password="password2", user_token="token2")
+    UserData.add(user_name="test3", user_password="password3", user_token="token3")
+    UserData.add(user_name="test4", user_password="password4", user_token="token4")
 
     logging.info("Four dummy users have been added.")
 
@@ -46,5 +46,5 @@ if __name__ == "__main__":
     else:
         parser.error("Need to provide either --config or --database-path")
 
-    user_data = UserData(database_path)
+    init_engine(database_path)
     insert_users()

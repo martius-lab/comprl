@@ -11,7 +11,7 @@ import sqlalchemy as sa
 import tabulate
 
 from comprl.server.config import load_config
-from comprl.server.data.sql_backend import Game
+from comprl.server.data import Game
 from comprl.server.data.interfaces import GameEndState
 
 

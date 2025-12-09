@@ -12,9 +12,10 @@ import sqlalchemy as sa
 import tabulate
 import typer
 
-from comprl.server.data.sql_backend import Game, User, hash_password
+from comprl.server.data import Game, User
+from comprl.server.data.sql_backend import hash_password
 from comprl.server.data.interfaces import UserRole
-from comprl.server.data import UserData
+from comprl.server.data import UserData, init_engine
 
 
 app = typer.Typer()
@@ -134,10 +135,10 @@ def add(
     ] = UserRole.USER,
 ) -> None:
     """Create a new user."""
-    user_data = UserData(database)
+    init_engine(database)
 
     token = str(uuid.uuid4())
-    user_data.add(
+    UserData.add(
         user_name=username, user_password=password, user_token=token, user_role=role
     )
 

@@ -15,8 +15,7 @@ import numpy as np
 
 from comprl.server.interfaces import IGame, IPlayer
 from comprl.shared.types import GameID, PlayerID
-from comprl.server.data import GameData, UserData
-from comprl.server.data.sql_backend import User
+from comprl.server.data import GameData, User, UserData, get_session, get_one
 from comprl.server.data.interfaces import UserRole, GameEndState
 from comprl.server.config import get_config
 
@@ -77,7 +76,7 @@ class GameManager:
 
             game_result = game.get_result()
             if game_result is not None:
-                GameData(get_config().database_path).add(game_result)
+                GameData.add(game_result)
             else:
                 self._log.error("Game had no valid result | game_id=%s", game.id)
             del self.games[game.id]
@@ -154,7 +153,7 @@ class PlayerManager:
         if player is None:
             return False
 
-        user = UserData(get_config().database_path).get_user_by_token(token)
+        user = UserData.get_user_by_token(token)
 
         if user is not None:
             # add player to authenticated players
@@ -198,7 +197,7 @@ class PlayerManager:
         Returns:
             Optional[User]: The user object if found, None otherwise.
         """
-        return UserData(get_config().database_path).get(user_id)
+        return UserData.get(user_id)
 
     def get_user_id(self, player_id: PlayerID) -> int | None:
         """
@@ -256,33 +255,6 @@ class PlayerManager:
 
         for player in self.connected_players.values():
             player.disconnect(reason)
-
-    def get_matchmaking_parameters(self, user_id: int) -> tuple[float, float]:
-        """
-        Retrieves the matchmaking parameters of a user based on their ID.
-
-        Args:
-            user_id (int): The ID of the user.
-
-        Returns:
-            tuple[float, float]: The mu and sigma values of the user.
-        """
-        return UserData(get_config().database_path).get_matchmaking_parameters(user_id)
-
-    def update_matchmaking_parameters(
-        self, user_id: int, new_mu: float, new_sigma: float
-    ) -> None:
-        """
-        Updates the matchmaking parameters of a user based on their ID.
-
-        Args:
-            user_id (int): The ID of the user.
-            new_mu (float): The new mu value of the user.
-            new_sigma (float): The new sigma value of the user.
-        """
-        UserData(get_config().database_path).set_matchmaking_parameters(
-            user_id, new_mu, new_sigma
-        )
 
 
 # Type of a player entry in the queue, containing the player ID, user ID, mu, sigma
@@ -361,20 +333,17 @@ class GaussLeaderboardRater(MatchQualityRater):
 
     def __init__(
         self,
-        user_data: UserData,
         scale: float = 0.5,
         sigma_func: Callable[[], float] = lambda: 20.0,
     ) -> None:
         """
         Args:
-            user_data: The user data object to get the user ranking.
             scale: Scaling factor for the score.  The match quality will
                 correspond to this value if the leaderboard distance is zero.
             sigma_func: Function returning standard deviation of the Gaussian function.
                 Using a function here allows to dynamically change the value based, e.g.
                 when configuration is reloaded.
         """
-        self.user_data = user_data
         self.scale = scale
         self.sigma_func = sigma_func
 
@@ -382,7 +351,7 @@ class GaussLeaderboardRater(MatchQualityRater):
 
     def update_model(self) -> None:
         """Update the model with the current user ranking."""
-        self.ranked_users = [u.user_id for u in self.user_data.get_ranked_users()]
+        self.ranked_users = [u.user_id for u in UserData.get_ranked_users()]
 
         # clear cached positions
         self.user_positions: dict[int, int] = {}
@@ -425,7 +394,6 @@ class MatchmakingManager:
 
         # self.match_quality_rater = OpenskillRater(self.model)
         self.match_quality_rater = GaussLeaderboardRater(
-            UserData(),
             sigma_func=lambda: get_config().matchmaking.gauss_leaderboard_rater_sigma,
         )
 
@@ -674,24 +642,23 @@ class MatchmakingManager:
         result = game.get_result()
         # if a player disconnected during the game, simply don't update the ratings
         if result is not None and result.end_state is not GameEndState.DISCONNECTED:
-            mu_p1, sigma_p1 = self.player_manager.get_matchmaking_parameters(
-                result.user1_id
-            )
-            mu_p2, sigma_p2 = self.player_manager.get_matchmaking_parameters(
-                result.user2_id
-            )
-            rating_p1 = self.model.create_rating([mu_p1, sigma_p1], "player1")
-            rating_p2 = self.model.create_rating([mu_p2, sigma_p2], "player2")
-            [[p1], [p2]] = self.model.rate(
-                [[rating_p1], [rating_p2]],
-                scores=[result.score_user_1, result.score_user_2],
-            )
-            self.player_manager.update_matchmaking_parameters(
-                result.user1_id, p1.mu, p1.sigma
-            )
-            self.player_manager.update_matchmaking_parameters(
-                result.user2_id, p2.mu, p2.sigma
-            )
+            with get_session() as session:
+                user1 = get_one(session, User, result.user1_id)
+                user2 = get_one(session, User, result.user2_id)
+
+                rating_p1 = self.model.create_rating([user1.mu, user1.sigma], "player1")
+                rating_p2 = self.model.create_rating([user2.mu, user2.sigma], "player2")
+                [[p1], [p2]] = self.model.rate(
+                    [[rating_p1], [rating_p2]],
+                    scores=[result.score_user_1, result.score_user_2],
+                )
+
+                user1.mu = p1.mu
+                user1.sigma = p1.sigma
+                user1.mu = p1.mu
+                user1.sigma = p1.sigma
+
+                session.commit()
 
         for _, p in game.players.items():
             self.try_match(p.id)

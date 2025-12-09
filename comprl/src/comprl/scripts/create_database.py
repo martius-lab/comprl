@@ -7,7 +7,7 @@ import logging
 import pathlib
 import sys
 
-from comprl.server.data import sql_backend
+from comprl.server.data.models import create_database_tables
 
 try:
     import tomllib  # type: ignore[import-not-found]
@@ -40,7 +40,7 @@ def main() -> int:
     if pathlib.Path(db_path).exists():
         print(f"ERROR: Database '{db_path}' already exists.", file=sys.stderr)
         return 1
-    sql_backend.create_database_tables(db_path)
+    create_database_tables(db_path)
 
     return 0
 

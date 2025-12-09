@@ -1,7 +1,7 @@
 import pytest
 
 from comprl.server.data import UserData
-from comprl.server.data.sql_backend import create_database_tables
+from comprl.server.data.models import create_database_tables
 
 
 def test_user_data(tmp_path):

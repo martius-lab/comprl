@@ -19,7 +19,7 @@ import sqlalchemy as sa
 
 from comprl.server import config, networking
 from comprl.server.data import get_session, User, Game
-from comprl.server.data.sql_backend import DEFAULT_SIGMA
+from comprl.server.data.models import DEFAULT_SIGMA
 from comprl.server.managers import GameManager, PlayerManager, MatchmakingManager
 from comprl.server.interfaces import IPlayer, IServer
 

@@ -12,7 +12,8 @@ import sqlalchemy as sa
 import tabulate
 import typer
 
-from comprl.server.data.sql_backend import Game, User, hash_password
+from comprl.server.data import Game, User
+from comprl.server.data.sql_backend import hash_password
 from comprl.server.data.interfaces import UserRole
 from comprl.server.data import UserData
 

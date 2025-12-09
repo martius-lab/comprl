@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from comprl.server.util import IDGenerator
 from comprl.server.data.interfaces import GameEndState, GameResult
 from comprl.server.data import GameData
-from comprl.server.data.sql_backend import create_database_tables
+from comprl.server.data.models import create_database_tables
 
 
 def test_game_data(tmp_path):

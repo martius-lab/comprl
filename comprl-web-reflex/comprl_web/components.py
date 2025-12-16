@@ -36,13 +36,11 @@ def standard_layout(
     page: rx.Component, heading: str = "RL Competition"
 ) -> rx.Component:
     """Wrap page with standard layout with header and menu."""
-    return rx.fragment(
-        rx.vstack(
-            rx.heading(heading, font_size="2em"),
-            links(),
-            page,
-            spacing="2",
-            padding_top="10%",
-            align="center",
-        ),
+    return rx.vstack(
+        rx.heading(heading, font_size="2em"),
+        links(),
+        page,
+        spacing="2",
+        padding_top="2em",
+        align="center",
     )

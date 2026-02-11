@@ -1,4 +1,4 @@
-"""script to reset the game database and the mu and sigma in the user database"""
+"""Reset user scores and delete all games from the database."""
 
 from comprl.server.data import UserData, GameData, init_engine
 import logging
@@ -20,15 +20,14 @@ logging.basicConfig(level=logging.DEBUG)
 def reset_games():
     """deletes the game table"""
     GameData.delete_all()
-    logging.info("The games table has been deleted.")
+    logging.info("Cleared games table.")
 
 
 def reset_elo():
-    """reset the elo in the user database: set mu=25.000 and sigma=8.333"""
+    """Reset the mu/sigma score of all users to default values"""
     UserData.reset_all_ratings()
-    logging.info(
-        "The matchmaking parameters have been reset to default values for all users."
-    )
+    logging.info("Reset matchmaking parameters to default values.")
+    logging.info("Cleared rating change log.")
 
 
 if __name__ == "__main__":
@@ -64,7 +63,7 @@ if __name__ == "__main__":
 
     user_answer = input(
         "Are you sure you want to delete the games table and "
-        "reset the matchmaking parameters? (Y/N)"
+        "reset the matchmaking parameters? (Y/n) "
     )
 
     if user_answer.lower() == "y":

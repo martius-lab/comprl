@@ -321,6 +321,7 @@ class UserData:
         """Resets the matchmaking parameters of all users."""
         with get_session() as session:
             session.query(User).update({"mu": DEFAULT_MU, "sigma": DEFAULT_SIGMA})
+            session.query(RatingChangeLog).delete()
             session.commit()
 
     @staticmethod

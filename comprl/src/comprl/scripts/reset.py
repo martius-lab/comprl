@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     user_answer = input(
         "Are you sure you want to delete the games table and "
-        "reset the matchmaking parameters? (Y/n) "
+        "reset the matchmaking parameters? (y/N) "
     )
 
     if user_answer.lower() == "y":
